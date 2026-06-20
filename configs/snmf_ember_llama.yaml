@@ -1,0 +1,38 @@
+# SNMF MLP erasure + EMBER embedding step on Llama-3.1-8B-Instruct.
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/snmf_ember_llama.yaml \
+#       --train-eval mc --concepts "Harry Potter"
+
+method: snmf
+model_name: meta-llama/Llama-3.1-8B-Instruct
+rank: 200
+seed: 42
+topk: 15
+run_tests_after_train: true
+
+selection:
+  ratio_thresh: 2.0
+  coverage_thresh: 0.95
+
+ember_step:
+  enabled: true
+  deltas: [0.5, 1.0, 2.0, 5.0, 10.0, 50.0, 100.0, 200.0]
+
+snmf:
+  w_mode: both
+  feature_source: all
+  in_deltas: [1.0, 4.0, 7.0, 10.0]
+  out_deltas: [1.0, 4.0, 7.0, 10.0]
+  dtype: bf16
+
+eval:
+  alpaca: true
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+  alpaca_batch_size: 75
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json

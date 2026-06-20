@@ -1,0 +1,12 @@
+[submodule "external/snmf"]
+	path = external/snmf
+	url = https://github.com/ordavid-s/snmf-mlp-decomposition.git
+[submodule "external/CRISP"]
+	path = external/CRISP
+	url = https://github.com/ClarSu/CRISP.git
+[submodule "external/wmdp"]
+	path = external/wmdp
+	url = https://github.com/ClarSu/wmdp.git
+[submodule "external/PISCES"]
+	path = external/PISCES
+	url = https://github.com/ClarSu/PISCES.git

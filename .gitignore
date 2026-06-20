@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+*.so
+
+# Environment
+.env
+*.env
+
+# Model / feature outputs (large, user-generated)
+mf_outputs/
+results/
+*.log
+
+# CRISP SAE caches (downloaded automatically on first run)
+external/CRISP/crisp/gemma_sae_cache/
+external/CRISP/crisp/llama_sae_cache/
+
+# Baseline caches (regenerated on first run)
+data/baselines/
+data/baseline_samples/
+data/mmlu_cache.json
+
+# Gemini usage telemetry (generated at runtime)
+gemini_usage_log.jsonl
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

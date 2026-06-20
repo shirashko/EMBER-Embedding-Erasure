@@ -1,0 +1,584 @@
+[
+    {
+        "name": "Culture of Greece",
+        "k": 0.7,
+        "value": 13,
+        "features": [
+            {
+                "layer": 1,
+                "id": 5261,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 2,
+                "id": 13781,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 3,
+                "id": 3841,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 4,
+                "id": 4503,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 5,
+                "id": 2698,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 8,
+                "id": 11746,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 19,
+                "id": 595,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 19,
+                "id": 7016,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 19,
+                "id": 15726,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 25,
+                "id": 14720,
+                "neg": false,
+                "large": false
+            }
+        ]
+    },
+    {
+        "name": "Golf",
+        "k": 2,
+        "value": 3,
+        "features": [
+            {
+                "layer": 1,
+                "id": 9964,
+                "neg": false
+            },
+            {
+                "layer": 2,
+                "id": 4976,
+                "neg": false
+            },
+            {
+                "layer": 3,
+                "id": 11401,
+                "neg": false
+            },
+            {
+                "layer": 4,
+                "id": 2934,
+                "neg": true
+            },
+            {
+                "layer": 8,
+                "id": 5233,
+                "neg": true
+            },
+            {
+                "layer": 18,
+                "id": 616,
+                "neg": true
+            },
+            {
+                "layer": 18,
+                "id": 15167,
+                "neg": true
+            },
+            {
+                "layer": 24,
+                "id": 13779,
+                "neg": true
+            },
+            {
+                "layer": 25,
+                "id": 11771,
+                "neg": false
+            }
+        ]
+    },
+    {
+        "name": "Republic of Ireland",
+        "k": 4,
+        "value": 8,
+        "features": [
+            {
+                "layer": 1,
+                "id": 2987,
+                "neg": false
+            },
+            {
+                "layer": 2,
+                "id": 5408,
+                "neg": false
+            },
+            {
+                "layer": 3,
+                "id": 10477,
+                "neg": false
+            },
+            {
+                "layer": 18,
+                "id": 2170,
+                "neg": true
+            },
+            {
+                "layer": 20,
+                "id": 1672,
+                "neg": true
+            },
+            {
+                "layer": 21,
+                "id": 11055,
+                "neg": true
+            }
+        ]
+    },
+    {
+        "name": "Ancient Rome",
+        "k": 12,
+        "value": 1,
+        "features": [
+            {
+                "layer": 19,
+                "id": 11384,
+                "neg": true
+            },
+            {
+                "layer": 20,
+                "id": 1325,
+                "neg": false
+            },
+            {
+                "layer": 20,
+                "id": 3501,
+                "neg": true
+            },
+            {
+                "layer": 25,
+                "id": 2232,
+                "neg": false
+            }
+        ]
+    },
+    {
+        "name": "Baseball",
+        "k": 8,
+        "value": 3,
+        "features": [
+            {
+                "layer": 2,
+                "id": 190,
+                "neg": false
+            },
+            {
+                "layer": 3,
+                "id": 7932,
+                "neg": false
+            },
+            {
+                "layer": 4,
+                "id": 10555,
+                "neg": true
+            },
+            {
+                "layer": 15,
+                "id": 8699,
+                "neg": true
+            },
+            {
+                "layer": 16,
+                "id": 6628,
+                "neg": false
+            },
+            {
+                "layer": 18,
+                "id": 3013,
+                "neg": false
+            },
+            {
+                "layer": 18,
+                "id": 7921,
+                "neg": true
+            },
+            {
+                "layer": 22,
+                "id": 738,
+                "neg": true
+            },
+            {
+                "layer": 22,
+                "id": 15110,
+                "neg": false
+            },
+            {
+                "layer": 25,
+                "id": 573,
+                "neg": false
+            },
+            {
+                "layer": 25,
+                "id": 1911,
+                "neg": false
+            }
+        ]
+    },
+    {
+        "name": "Uranium",
+        "k": -1,
+        "value": -1,
+        "features": [
+            {
+                "layer": 4,
+                "id": 8855,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 4,
+                "id": 15551,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 19,
+                "id": 10077,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 19,
+                "id": 15195,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 23,
+                "id": 2034,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 24,
+                "id": 7756,
+                "neg": false,
+                "large": false
+            }
+        ]
+    },
+    {
+        "name": "Cannabis",
+        "k": 0.2,
+        "value": 50,
+        "features": [
+            {
+                "layer": 6,
+                "id": 8089,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 14,
+                "id": 4811,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 18,
+                "id": 8971,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 21,
+                "id": 11245,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 24,
+                "id": 2806,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 24,
+                "id": 8983,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 25,
+                "id": 10088,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 25,
+                "id": 13813,
+                "neg": false,
+                "large": false
+            }
+        ]
+    },
+    {
+        "name": "Gambling",
+        "k": 0.4,
+        "value": 35,
+        "features": [
+            {
+                "layer": 4,
+                "id": 8549,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 5,
+                "id": 3743,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 14,
+                "id": 1199,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 15,
+                "id": 4397,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 18,
+                "id": 9296,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 19,
+                "id": 8676,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 19,
+                "id": 12901,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 25,
+                "id": 15674,
+                "neg": false,
+                "large": false
+            }
+        ]
+    },
+    {
+        "name": "Gun",
+        "k": 0.75,
+        "value": 25,
+        "features": [
+            {
+                "layer": 3,
+                "id": 2077,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 7,
+                "id": 15264,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 14,
+                "id": 4441,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 16,
+                "id": 8545,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 17,
+                "id": 13425,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 17,
+                "id": 13611,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 18,
+                "id": 318,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 18,
+                "id": 13570,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 25,
+                "id": 9143,
+                "neg": false,
+                "large": false
+            }
+        ]
+    },
+    {
+        "name": "Pornography",
+        "k": 0.86,
+        "value": 30,
+        "features": [
+            {
+                "layer": 16,
+                "id": 1334,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 18,
+                "id": 15806,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 19,
+                "id": 11860,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 20,
+                "id": 8134,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 24,
+                "id": 5822,
+                "neg": true,
+                "large": false
+            }
+        ]
+    },
+    {
+        "name": "Uranium",
+        "k": 0.4,
+        "value": 4,
+        "features": [
+            {
+                "layer": 4,
+                "id": 8855,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 4,
+                "id": 15551,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 14,
+                "id": 2365,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 19,
+                "id": 10077,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 19,
+                "id": 15195,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 23,
+                "id": 2034,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 24,
+                "id": 7756,
+                "neg": false,
+                "large": false
+            }
+        ]
+    },
+    {
+        "name": "Harry Potter",
+        "k": 0.3,
+        "value": 4,
+        "features": [
+            {
+                "layer": 1,
+                "id": 8965,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 1,
+                "id": 13394,
+                "neg": false,
+                "large": false
+            },
+            {
+                "layer": 4,
+                "id": 661,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 20,
+                "id": 11104,
+                "neg": true,
+                "large": false
+            },
+            {
+                "layer": 20,
+                "id": 14668,
+                "neg": false,
+                "large": false
+            }
+        ]
+    }
+]

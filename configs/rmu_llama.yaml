@@ -1,0 +1,40 @@
+# RMU (Representation Misdirection Unlearning) on Llama-3.1-8B-Instruct (no EMBER embedding step).
+#
+# Each HP cell reloads the model from disk; requires a GPU with >=48 GB VRAM.
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/rmu_llama.yaml \
+#       --train-eval mc --concepts "Harry Potter"
+
+method: rmu
+model_name: meta-llama/Llama-3.1-8B-Instruct
+rank: 200
+seed: 42
+topk: 15
+run_tests_after_train: true
+
+selection:
+  ratio_thresh: 2.0
+
+ember_step:
+  enabled: false
+
+rmu:
+  lr_grid: null
+  alpha_grid: null
+  steering_grid: null
+  batch_size: 8
+  max_num_batches: 150
+  min_len: 50
+  max_len: 2000
+
+eval:
+  alpaca: true
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+  alpaca_batch_size: 75
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json

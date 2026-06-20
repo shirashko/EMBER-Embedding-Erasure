@@ -1,0 +1,36 @@
+# SNMF MLP erasure on Gemma-2-2b-it (no EMBER embedding step).
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/snmf_gemma.yaml \
+#       --train-eval mc --concepts "Harry Potter"
+
+method: snmf
+model_name: google/gemma-2-2b-it
+rank: 100
+seed: 42
+topk: 15
+run_tests_after_train: true
+
+selection:
+  ratio_thresh: 2.0
+  coverage_thresh: 0.95
+
+ember_step:
+  enabled: false
+
+snmf:
+  w_mode: both
+  feature_source: all
+  in_deltas: [1.0, 4.0, 7.0, 10.0]
+  out_deltas: [1.0, 4.0, 7.0, 10.0]
+  dtype: bf16
+
+eval:
+  alpaca: true
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json

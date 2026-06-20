@@ -1,0 +1,34 @@
+# PISCES feature-editing erasure on Llama-3.1-8B-Instruct (no embed step).
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/pisces_llama.yaml \
+#       --train-eval mc --concepts "Harry Potter"
+
+method: pisces
+model_name: meta-llama/Llama-3.1-8B-Instruct
+rank: 200
+seed: 42
+topk: 15
+run_tests_after_train: true
+
+selection:
+  ratio_thresh: 2.0
+
+ember_step:
+  enabled: false
+
+pisces:
+  ks: [0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
+  values: [4.0, 7.0, 10.0, 13.0, 18.0, 21.0, 24.0, 30.0, 36.0, 42.0, 50.0, 60.0]
+  dtype: bf16
+
+eval:
+  alpaca: true
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+  alpaca_batch_size: 75
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json

@@ -1,0 +1,41 @@
+# CRISP (SAE + LoRA unlearning) + EMBER embedding step on Gemma-2-2b-it.
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/crisp_ember_gemma.yaml \
+#       --train-eval mc --concepts "Harry Potter"
+
+method: crisp
+model_name: google/gemma-2-2b-it
+rank: 100
+seed: 42
+topk: 15
+run_tests_after_train: true
+
+selection:
+  ratio_thresh: 2.0
+
+ember_step:
+  enabled: true
+  deltas: [0.5, 1.0, 2.0, 5.0, 10.0, 50.0, 100.0, 200.0]
+
+crisp:
+  k_features_grid: [5, 10, 20]
+  alpha_grid: [5.0, 10.0, 20.0, 50.0]
+  lr_grid: [5.0e-5, 1.0e-4, 5.0e-4]
+  batch_size: 16
+  num_epochs: 2
+  lora_batch_size: 16
+  beta: 0.99
+  gamma: 0.01
+  lora_rank: 4
+  sae_cache: gemma_sae_cache
+
+eval:
+  alpaca: true
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json

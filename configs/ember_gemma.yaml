@@ -1,0 +1,28 @@
+# EMBER standalone embedding erasure on Gemma-2-2b-it.
+# e_i_new = e_i - delta * (F'[:,k'] @ G'[i,k'])
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/ember_gemma.yaml \
+#       --train-eval mc --concepts "Harry Potter"
+
+method: ember
+model_name: google/gemma-2-2b-it
+rank: 100
+seed: 42
+run_tests_after_train: true
+
+selection:
+  ratio_thresh: 2.0
+
+ember:
+  deltas: [0.5, 1.0, 2.0, 5.0, 10.0, 50.0, 100.0, 200.0]
+
+# Note: EMBER's grid hardcodes its own gate (min_mmlu=0.9, min_alpaca=0.9,
+# max_qa_acc=None) in grid_eval_kwargs(), so only alpaca matters here.
+eval:
+  alpaca: true
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json
