@@ -77,3 +77,43 @@ layer_ranges_out: [[13, 25]]
 ```
 
 Pinned layer ranges and RMU update settings are validated against the allowed grid presets for each model at config load time.
+
+## Checkpoints
+
+Reproduce configs enable checkpoint export:
+
+```yaml
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints
+```
+
+After the final-test unlearning step (and **before** relearning), the pipeline saves the unlearned model to:
+
+```
+unlearned_checkpoints/<method>/<model>/<concept>/
+```
+
+Each directory contains Hugging Face `save_pretrained` weights, the tokenizer, and `unlearned_checkpoints.json` (run metadata + hyperparameters). Re-run with `--overwrite` to replace an existing checkpoint.
+
+### What gets saved
+
+- **CRISP** trains a small LoRA adapter on top of the base model (via PEFT). The checkpoint contains only that adapter (`adapter_model.safetensors`, etc.), not the full base weights. Load with the original base model:
+
+  ```python
+  from peft import PeftModel
+  from transformers import AutoModelForCausalLM
+
+  base = AutoModelForCausalLM.from_pretrained("google/gemma-2-2b-it")
+  model = PeftModel.from_pretrained(base, "unlearned_checkpoints/crisp/.../ancient_rome")
+  ```
+
+- **RMU, SNMF, PISCES** edit weights directly in the model. The checkpoint is a standalone full model — load from the directory alone:
+
+  ```python
+  from transformers import AutoModelForCausalLM
+
+  model = AutoModelForCausalLM.from_pretrained("unlearned_checkpoints/snmf/.../ancient_rome")
+  ```
+
+CRISP checkpoints are much smaller on disk, the others are roughly the size of the full model.

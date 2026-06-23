@@ -14,6 +14,7 @@ build/
 # Model / feature outputs (large, user-generated)
 mf_outputs/
 results/
+unlearned_checkpoints/
 *.log
 
 # CRISP SAE caches (downloaded automatically on first run)

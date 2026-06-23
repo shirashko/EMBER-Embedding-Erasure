@@ -39,3 +39,6 @@ relearning:
   enabled: true
   max_paragraphs: 100
   csv_path: data/relearn_paragraphs.json
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints

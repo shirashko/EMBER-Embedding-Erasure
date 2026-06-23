@@ -247,6 +247,10 @@ def build_run_config(
         ),
         "eval": dict(base.get("eval") or {}),
         "relearning": dict(base.get("relearning") or {}),
+        "checkpoint": {
+            "enabled": True,
+            "root": "unlearned_checkpoints",
+        },
         "_reproduce_meta": {
             "source": "optimal_unlearning_hyperparams.yaml",
             "base_config": f"configs/{method_slug}_{model_key.lower()}.yaml",

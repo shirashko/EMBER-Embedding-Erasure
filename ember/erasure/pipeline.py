@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 
 from ember.erasure import eval as eval_mod
+from ember.erasure import checkpoints
 from ember.erasure import io
 from ember.erasure import log
 from ember.erasure import model_loader
@@ -550,6 +551,10 @@ def _run_final_test(method: methods_base.Method, cfg: RunConfig,
             eval_model = method.get_model_to_eval() or hf_model
             skip_eval = method.skip_eval_for_hp(apply_hp)
             ft_secs = _ta["elapsed"]
+
+            checkpoints.save_unlearned_checkpoint(
+                eval_model, tokenizer, cfg, concept, hyperparameters=apply_hp,
+            )
 
             if state == "fresh":
                 _drop_concept_rows(final_mc, concept)
