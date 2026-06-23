@@ -117,3 +117,19 @@ Each directory contains Hugging Face `save_pretrained` weights, the tokenizer, a
   ```
 
 CRISP checkpoints are much smaller on disk, the others are roughly the size of the full model.
+
+## Skipping Gemini (LLM judge) eval
+
+Reproduce configs set `eval.skip_llm_judge: true` so the run does not call Gemini. When enabled:
+
+- **Skipped:** Alpaca scoring, open-ended QA judging, and the validate stage (Alpaca re-score).
+- **Still runs:** MMLU and multiple-choice QA (for `train_eval: mc` and `test_mc`).
+- **Baselines:** Cached LLM-judge baselines are reused if present, otherwise those sets are omitted (no API key, no dummy values).
+- **Checkpoints:** Still saved in final test after unlearning, before any remaining eval.
+
+To enable manually:
+
+```yaml
+eval:
+  skip_llm_judge: true
+```

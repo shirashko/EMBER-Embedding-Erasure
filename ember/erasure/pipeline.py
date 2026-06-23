@@ -93,6 +93,8 @@ def run(cfg: RunConfig) -> None:
 
     alpaca_bs = cfg.eval.alpaca_batch_size or _ALPACA_BATCH_SIZE_DEFAULT
     log.info("alpaca_batch_size=%d", alpaca_bs)
+    if cfg.eval.skip_llm_judge:
+        log.info("skip_llm_judge=True: skipping Alpaca, open-QA judging, and validate")
 
     baselines = _compute_all_baselines(cfg, hf_model, tokenizer, alpaca_bs)
     best_embed_map = _resolve_ember_step(cfg, hf_model, tokenizer, baselines, alpaca_bs)
@@ -174,6 +176,7 @@ def _compute_all_baselines(cfg: RunConfig, hf_model: Any, tokenizer: Any,
             tokenizer=tokenizer,
             alpaca_batch_size=alpaca_bs,
             required_concepts=cfg.concepts,
+            skip_llm_judge=cfg.eval.skip_llm_judge,
         )
 
     if cfg.run_tests_after_train:
@@ -185,6 +188,7 @@ def _compute_all_baselines(cfg: RunConfig, hf_model: Any, tokenizer: Any,
                     tokenizer=tokenizer,
                     alpaca_batch_size=alpaca_bs,
                     required_concepts=cfg.concepts,
+                    skip_llm_judge=cfg.eval.skip_llm_judge,
                 )
 
     torch.cuda.empty_cache()
@@ -305,6 +309,7 @@ def _run_method_grid(method: methods_base.Method, cfg: RunConfig,
                             mode=train_mode,
                             tokenizer=tokenizer,
                             alpaca_batch_size=alpaca_bs,
+                            skip_llm_judge=cfg.eval.skip_llm_judge,
                             **method.grid_eval_kwargs(cfg),
                         )
                 _t_add(concept, "grid", _t["elapsed"])
@@ -339,6 +344,10 @@ def _run_validate_topk(method: methods_base.Method, cfg: RunConfig,
                        alpaca_bs: int) -> None:
     if not method.writes_topk_csv():
         log.info("method %s does not write top-K; skipping validate", method.name)
+        return
+
+    if cfg.eval.skip_llm_judge:
+        log.info("skip_llm_judge: skipping validate (Gemini Alpaca re-score)")
         return
 
     train_mode = f"train_{cfg.train_eval}"
@@ -412,6 +421,7 @@ def _run_validate_topk(method: methods_base.Method, cfg: RunConfig,
                             max_qa_acc=None,
                             tokenizer=tokenizer,
                             alpaca_batch_size=alpaca_bs,
+                            skip_llm_judge=cfg.eval.skip_llm_judge,
                         )
                 _t_add(concept, "validate", _t["elapsed"])
 
@@ -451,13 +461,29 @@ def _pick_best_hp_for_test(
     return None if row is None else row.to_dict()
 
 
-_EVAL_METRIC_COLS = ("qa_acc", "mmlu_frac", "harmonic_alpaca", "alp_instr_frac")
+
+def _final_test_row_complete(row: Any, *, is_mc: bool, skip_llm_judge: bool) -> bool:
+    import pandas as pd
+
+    if row is None:
+        return False
+    cols = ["mmlu_frac"]
+    if is_mc:
+        cols.append("qa_acc")
+    if not skip_llm_judge:
+        cols.extend(["harmonic_alpaca", "alp_instr_frac"])
+    for col in cols:
+        if col not in row or pd.isna(row.get(col, float("nan"))):
+            return False
+    return True
 
 
 def _classify_concept_state(
         concept: str,
         df_mc: Any, df_open: Any,
         relearning_enabled: bool,
+        *,
+        skip_llm_judge: bool = False,
 ) -> str:
     """Return "done", "partial", or "fresh" for resume logic."""
     import pandas as pd
@@ -472,13 +498,10 @@ def _classify_concept_state(
 
     row_mc = _row(df_mc, concept)
     row_open = _row(df_open, concept)
-    if row_mc is None or row_open is None:
+    if not _final_test_row_complete(row_mc, is_mc=True, skip_llm_judge=skip_llm_judge):
         return "fresh"
-
-    for r in (row_mc, row_open):
-        for col in _EVAL_METRIC_COLS:
-            if col not in r or pd.isna(r.get(col, float("nan"))):
-                return "fresh"
+    if not _final_test_row_complete(row_open, is_mc=False, skip_llm_judge=skip_llm_judge):
+        return "fresh"
 
     if not relearning_enabled:
         return "done"
@@ -523,7 +546,8 @@ def _run_final_test(method: methods_base.Method, cfg: RunConfig,
             df_mc = io.read_csv_safe(final_mc)
             df_open = io.read_csv_safe(final_open)
             state = (_classify_concept_state(concept, df_mc, df_open,
-                                              cfg.relearning.enabled)
+                                              cfg.relearning.enabled,
+                                              skip_llm_judge=cfg.eval.skip_llm_judge)
                      if not cfg.overwrite else "fresh")
             log.info("concept state = %s", state)
 
@@ -575,11 +599,12 @@ def _run_final_test(method: methods_base.Method, cfg: RunConfig,
                                 baselines=baselines[mode],
                                 concept_name=concept,
                                 mode=mode,
-                                eval_alpaca=True,
+                                eval_alpaca=not cfg.eval.skip_llm_judge,
                                 min_mmlu=None,
                                 max_qa_acc=None,
                                 tokenizer=tokenizer,
                                 alpaca_batch_size=alpaca_bs,
+                                skip_llm_judge=cfg.eval.skip_llm_judge,
                             )
                     ft_secs += _te["elapsed"]
                     relearn_col = ("relearning_qa_mc" if mode == "test_mc"
@@ -649,6 +674,7 @@ def _run_relearning_and_update(
             eval_alpaca=False, eval_mmlu=False,
             min_mmlu=None, max_qa_acc=None,
             tokenizer=tok, alpaca_batch_size=alpaca_bs,
+            skip_llm_judge=cfg.eval.skip_llm_judge,
         )
         return metrics
 
@@ -672,6 +698,7 @@ def _run_relearning_and_update(
             eval_alpaca=False, eval_mmlu=False,
             min_mmlu=None, max_qa_acc=None,
             tokenizer=tokenizer, alpaca_batch_size=alpaca_bs,
+            skip_llm_judge=cfg.eval.skip_llm_judge,
         )
         relearned_qa[mode] = float(metrics.get("qa_acc", float("nan")))
 

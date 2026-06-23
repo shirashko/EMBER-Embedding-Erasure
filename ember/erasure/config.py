@@ -125,6 +125,7 @@ class EvalConfig:
     min_mmlu: float = 0.7
     max_qa_acc: float = 0.6
     alpaca_batch_size: Optional[int] = None
+    skip_llm_judge: bool = False
 
 
 @dataclass

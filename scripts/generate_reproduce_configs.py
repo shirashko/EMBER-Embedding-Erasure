@@ -245,7 +245,10 @@ def build_run_config(
         method_slug: _pin_method_hps(
             method, model_key, hp, dict(base.get(method_slug) or {}),
         ),
-        "eval": dict(base.get("eval") or {}),
+        "eval": {
+            **dict(base.get("eval") or {}),
+            "skip_llm_judge": True,
+        },
         "relearning": dict(base.get("relearning") or {}),
         "checkpoint": {
             "enabled": True,

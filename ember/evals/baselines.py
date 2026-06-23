@@ -67,6 +67,10 @@ def _save_sample(set_name: str, model_safe: str,
 # compute_or_read_baseline                                                    #
 # ========================================================================== #
 
+def _baseline_needs_llm_judge(set_name: str) -> bool:
+    return set_name.startswith("alpaca_") or set_name.endswith("_open")
+
+
 def compute_or_read_baseline(
         model: Any,
         set_name: str,
@@ -76,8 +80,13 @@ def compute_or_read_baseline(
         sample_fraction: float = 1.0,
         alpaca_batch_size: int = 32,
         required_concepts: Optional[List[str]] = None,
-) -> BaselineResult:
-    """Return the baseline result for ``set_name``, reading or computing as needed."""
+        skip_llm_judge: bool = False,
+) -> Optional[BaselineResult]:
+    """Return the baseline result for ``set_name``, reading or computing as needed.
+
+    When ``skip_llm_judge`` is set, LLM-judge sets (Alpaca, open QA) are read
+    from cache only; returns ``None`` if no cache exists.
+    """
     tm = ensure_wrapped_model(model, tokenizer)
     model_name = tm.tokenizer_name()
     model_safe = _model_safe_name(model_name)
@@ -87,6 +96,23 @@ def compute_or_read_baseline(
     model_dir.mkdir(parents=True, exist_ok=True)
 
     baseline_path = model_dir / f"baseline_{set_name}.json"
+
+    if skip_llm_judge and _baseline_needs_llm_judge(set_name):
+        if baseline_path.exists():
+            data = json.loads(baseline_path.read_text(encoding="utf-8"))
+            missing: set = set()
+            if required_concepts and "per_concept" in data.get("meta", {}):
+                existing = set(data["meta"]["per_concept"].keys())
+                missing = set(required_concepts) - existing
+            if not missing:
+                return BaselineResult(
+                    set_name=data["set_name"],
+                    n_questions=data["n_questions"],
+                    metrics=data["metrics"],
+                    meta=data.get("meta", {}),
+                )
+        print(f"[baseline] skip_llm_judge: skipping {set_name} (no cache)")
+        return None
 
     if baseline_path.exists():
         data = json.loads(baseline_path.read_text(encoding="utf-8"))
@@ -284,11 +310,14 @@ def get_baselines_for_mode(
         tokenizer: Any = None,
         alpaca_batch_size: int = 32,
         required_concepts: Optional[List[str]] = None,
+        skip_llm_judge: bool = False,
 ) -> Dict[str, Any]:
-    """Compute (or read) all four baselines for ``mode``.
+    """Compute (or read) baselines for ``mode``.
 
-    Returns a dict with ``mmlu_acc``, ``alpaca_instr``, ``alpaca_flu``,
-    ``qa_per_concept``, ``simdom_per_concept``.
+    Returns ``mmlu_acc`` always. Other keys are present only when loaded or
+    computed: ``qa_per_concept``, ``simdom_per_concept``, ``alpaca_instr``,
+    ``alpaca_flu``. With ``skip_llm_judge``, LLM-judge sets are omitted unless
+    already cached on disk.
     """
     if mode not in VALID_MODES:
         raise ValueError(f"Unknown mode {mode!r}")
@@ -302,31 +331,45 @@ def get_baselines_for_mode(
 
     tm = ensure_wrapped_model(model, tokenizer)
 
-    qa_base = compute_or_read_baseline(
-        tm, f"qa_{split}_{mode_suffix}",
-        out_dir=out_dir_str, required_concepts=required_concepts,
-    )
-    sim_base = compute_or_read_baseline(
-        tm, f"simdom_{split}_{mode_suffix}",
-        out_dir=out_dir_str, required_concepts=required_concepts,
-    )
+    qa_base: Optional[BaselineResult] = None
+    sim_base: Optional[BaselineResult] = None
+    if not (skip_llm_judge and is_open):
+        qa_base = compute_or_read_baseline(
+            tm, f"qa_{split}_{mode_suffix}",
+            out_dir=out_dir_str, required_concepts=required_concepts,
+            skip_llm_judge=skip_llm_judge,
+        )
+        sim_base = compute_or_read_baseline(
+            tm, f"simdom_{split}_{mode_suffix}",
+            out_dir=out_dir_str, required_concepts=required_concepts,
+            skip_llm_judge=skip_llm_judge,
+        )
+
     mmlu_base = compute_or_read_baseline(
         tm, f"mmlu_{split}", out_dir=out_dir_str,
     )
     alpaca_base = compute_or_read_baseline(
         tm, f"alpaca_{split}", out_dir=out_dir_str,
         alpaca_batch_size=alpaca_batch_size,
+        skip_llm_judge=skip_llm_judge,
     )
 
-    mmlu_acc = float(mmlu_base.metrics.get("accuracy_generation", 0.0))
+    if mmlu_base is None:
+        raise RuntimeError(f"MMLU baseline missing for {mode!r}")
 
-    return {
-        "mmlu_acc":           mmlu_acc,
-        "alpaca_instr":       float(alpaca_base.metrics.get("mean_instruct_score", 0.0)),
-        "alpaca_flu":         float(alpaca_base.metrics.get("mean_fluency_score", 0.0)),
-        "qa_per_concept":     qa_base.meta.get("per_concept", {}),
-        "simdom_per_concept": sim_base.meta.get("per_concept", {}),
+    out: Dict[str, Any] = {
+        "mmlu_acc": float(mmlu_base.metrics.get("accuracy_generation", 0.0)),
     }
+    if qa_base is not None:
+        out["qa_per_concept"] = qa_base.meta.get("per_concept", {})
+    if sim_base is not None:
+        out["simdom_per_concept"] = sim_base.meta.get("per_concept", {})
+    if alpaca_base is not None:
+        out["alpaca_instr"] = float(
+            alpaca_base.metrics.get("mean_instruct_score", 0.0))
+        out["alpaca_flu"] = float(
+            alpaca_base.metrics.get("mean_fluency_score", 0.0))
+    return out
 
 
 # ========================================================================== #

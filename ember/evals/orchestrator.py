@@ -59,6 +59,7 @@ def evaluate_model_for_mode(
         custom_indices_mmlu: Optional[List[int]] = None,
         dynamic_baselines: Optional[Dict[str, Any]] = None,
         alpaca_batch_size: int = 32,
+        skip_llm_judge: bool = False,
 ) -> Tuple[Dict[str, float], Dict[str, List[Dict[str, Any]]]]:
     """Full eval for one (model, concept, mode). Returns ``(metrics, records_by_set)``.
 
@@ -70,23 +71,39 @@ def evaluate_model_for_mode(
         raise ValueError(f"Unknown mode {mode!r}; expected {VALID_MODES}")
     tm = ensure_wrapped_model(model, tokenizer)
     gem_stats = GeminiTokenStats()
-    evaluator = GeminiEvaluator(token_stats=gem_stats)
+    evaluator: Optional[GeminiEvaluator] = None
 
     split = "train" if mode.startswith("train") else "test"
     is_open = mode.endswith("open")
 
-    qa_base = get_concept_baseline(baselines, concept_name, "qa", mode)
-    sim_base = get_concept_baseline(baselines, concept_name, "simdom", mode)
-    if qa_base is None:
+    if skip_llm_judge:
+        eval_alpaca = False
+        if is_open:
+            eval_qa = False
+            eval_simdom = False
+
+    qa_base = (get_concept_baseline(baselines, concept_name, "qa", mode)
+               if eval_qa else None)
+    sim_base = (get_concept_baseline(baselines, concept_name, "simdom", mode)
+                if eval_simdom else None)
+    if eval_qa and qa_base is None:
         raise KeyError(
             f"No QA baseline for concept {concept_name!r} in mode {mode}.\n"
             f"baselines={baselines!r}"
         )
-    if sim_base is None:
-        raise KeyError(f"No Simdom baseline for concept {concept_name!r} in mode {mode}.")
+    if eval_simdom and sim_base is None:
+        raise KeyError(
+            f"No Simdom baseline for concept {concept_name!r} in mode {mode}.\n"
+            f"baselines={baselines!r}"
+        )
     mmlu_base = baselines["mmlu_acc"]
-    alp_instr_base = baselines["alpaca_instr"]
-    alp_flu_base = baselines["alpaca_flu"]
+    alp_instr_base = baselines.get("alpaca_instr") if eval_alpaca else None
+    alp_flu_base = baselines.get("alpaca_flu") if eval_alpaca else None
+    if eval_alpaca and (alp_instr_base is None or alp_flu_base is None):
+        raise KeyError(
+            f"Alpaca baselines required for eval_alpaca in mode {mode!r} "
+            f"but missing from baselines={baselines!r}"
+        )
 
     metrics: Dict[str, float] = {}
     records_by_set: Dict[str, List[Dict[str, Any]]] = {}
@@ -148,6 +165,8 @@ def evaluate_model_for_mode(
 
     if is_open:
         if eval_qa:
+            if evaluator is None:
+                evaluator = GeminiEvaluator(token_stats=gem_stats)
             qa_acc, qa_frac, _ = _eval_open_set(
                 tm, evaluator, f"qa_{split}", concept_name, qa_base,
                 records_by_set,
@@ -161,6 +180,8 @@ def evaluate_model_for_mode(
                 return _finalize(metrics, records_by_set, gem_stats)
 
         if eval_simdom:
+            if evaluator is None:
+                evaluator = GeminiEvaluator(token_stats=gem_stats)
             sim_acc, sim_frac, _ = _eval_open_set(
                 tm, evaluator, f"simdom_{split}", concept_name, sim_base,
                 records_by_set,
@@ -200,6 +221,8 @@ def evaluate_model_for_mode(
     # Alpaca (optional)                                                  #
     # ------------------------------------------------------------------ #
     if eval_alpaca:
+        if evaluator is None:
+            evaluator = GeminiEvaluator(token_stats=gem_stats)
         instruct, fluency, alp_records = evaluate_alpaca(
             tm, evaluator, split, batch_size=alpaca_batch_size,
         )
