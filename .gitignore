@@ -41,3 +41,4 @@ notebooks/.ipynb_checkpoints/
 
 slurm_outputs/
 slurm_errors/
+slurm/
