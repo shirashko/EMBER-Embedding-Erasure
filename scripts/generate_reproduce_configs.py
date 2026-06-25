@@ -294,7 +294,7 @@ def write_jobs_manifest(
     output_dir: Path,
     jobs: List[Tuple[str, str, str]],
 ) -> Path:
-    """Write ``jobs.manifest.tsv`` for ``slurm/reproduce_unlearning.slurm``."""
+    """Write ``jobs.manifest.tsv`` for ``scripts/reproduce_unlearning.sh``."""
     path = output_dir / JOBS_MANIFEST_NAME
     lines = [
         f"{rel_config}\t{concept}\t{train_eval}"
