@@ -1,0 +1,55 @@
+# CRISP WMDP-Cyber optimal hyperparameters (Llama-3.1-8B).
+# Source: CRISP paper — SAE layers [4, 6, 8, …, 18];
+# k=50, λ=30, LoRA rank 4, lr=4e-5.
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/wmdp_configs/crisp/llama/cyber.yaml \
+#       --train-eval mc --concepts cyber
+
+method: crisp
+model_name: meta-llama/Llama-3.1-8B-Instruct
+rank: 200
+seed: 42
+topk: 1
+run_tests_after_train: true
+features_source: local
+
+selection:
+  ratio_thresh: 2.0
+
+ember_step:
+  enabled: false
+
+data:
+  source: wmdp
+  wmdp:
+    retain_type: cyber
+
+crisp:
+  max_len: 1000
+  k_features_grid: [50]
+  alpha_grid: [30.0]
+  lr_grid: [4.0e-5]
+  layer_ranges:
+    - [4, 18, 2]
+  batch_size: 8
+  num_epochs: 2
+  lora_batch_size: 4
+  beta: 0.99
+  gamma: 0.01
+  lora_rank: 4
+  sae_cache: llama_sae_cache
+
+eval:
+  alpaca: true
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+  skip_llm_judge: true
+  alpaca_batch_size: 75
+
+relearning:
+  enabled: false
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints

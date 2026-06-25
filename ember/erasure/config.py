@@ -24,7 +24,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass, field, fields, is_dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union, get_args, get_origin, get_type_hints
 
 import yaml
 
@@ -84,6 +84,35 @@ class RMUGridConfig:
 
 
 @dataclass
+class WMDPDataConfig:
+    """Settings used when ``data.source`` is ``wmdp``.
+
+    Training reads prepared ``*_dataset_cleaned.jsonl`` files only. Run
+    ``scripts/prepare_wmdp_corpora.py`` once to build them (CRISP paper
+    preprocessing: clean, right-truncate to 1000 chars, bio sample 5000).
+    """
+
+    retain_type: Optional[str] = None
+    data_root: str = "data/wmdp"
+    n_examples: Optional[int] = None
+    wiki_retain_max_len: int = 1000
+
+    def resolved_retain_type(self, domain: str) -> str:
+        """Return the retain corpus id; default matches the hazard domain."""
+        if self.retain_type is not None:
+            return self.retain_type.lower()
+        return domain.lower()
+
+
+@dataclass
+class DataConfig:
+    """Forget/retain corpus backend for unlearning methods."""
+
+    source: str = "ember"
+    wmdp: WMDPDataConfig = field(default_factory=WMDPDataConfig)
+
+
+@dataclass
 class CRISPGridConfig:
     k_features_grid: List[int] = field(default_factory=lambda: [5, 10, 20])
     alpha_grid: List[float] = field(default_factory=lambda: [5.0, 10.0, 20.0, 50.0])
@@ -96,6 +125,7 @@ class CRISPGridConfig:
     gamma: float = 0.01
     lora_rank: int = 4
     sae_cache: str = "gemma_sae_cache"
+    max_len: int = 2000
 
 
 @dataclass
@@ -125,6 +155,7 @@ class EvalConfig:
     min_mmlu: float = 0.7
     max_qa_acc: float = 0.6
     alpaca_batch_size: Optional[int] = None
+    skip_llm_judge: bool = False
 
 
 @dataclass
@@ -162,6 +193,7 @@ class RunConfig:
     run_tests_after_train: bool = True
     features_source: str = "hf"  # "hf": download features from the HF dataset; "local": read mf_outputs/ as-is
 
+    data: DataConfig = field(default_factory=DataConfig)
     ember_step: EMBERStepConfig = field(default_factory=EMBERStepConfig)
     selection: SelectionConfig = field(default_factory=SelectionConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
@@ -192,6 +224,29 @@ class RunConfig:
         if self.features_source not in ("hf", "local"):
             raise ValueError(f"features_source must be 'hf' or 'local', got "
                              f"{self.features_source!r}")
+        if self.data.source not in ("ember", "wmdp"):
+            raise ValueError(f"data.source must be 'ember' or 'wmdp', got "
+                             f"{self.data.source!r}")
+        if self.data.source == "wmdp":
+            from ember.wmdp.corpora import WMDP_DOMAINS, WMDP_RETAIN_TYPES
+            bad = [c for c in self.concepts if c.lower() not in WMDP_DOMAINS]
+            if bad:
+                raise ValueError(
+                    f"data.source='wmdp' requires concepts in {sorted(WMDP_DOMAINS)}, "
+                    f"got {bad}"
+                )
+            if self.data.wmdp.retain_type is not None:
+                rt = self.data.wmdp.retain_type.lower()
+                if rt not in WMDP_RETAIN_TYPES:
+                    raise ValueError(
+                        f"data.wmdp.retain_type must be one of "
+                        f"{sorted(WMDP_RETAIN_TYPES)}, got {rt!r}"
+                    )
+            if self.train_eval != "mc":
+                raise ValueError(
+                    "data.source='wmdp' requires --train-eval mc "
+                    "(WMDP evaluation uses logits MCQ, not open QA)"
+                )
         if (self.selection.neurons_thresh is not None
                 and self.selection.coverage_thresh is not None):
             raise ValueError("Use at most one of selection.neurons_thresh / coverage_thresh")
@@ -216,6 +271,15 @@ class RunConfig:
 # YAML loader                                                                 #
 # ========================================================================== #
 
+def _unwrap_optional(tp: Any) -> Any:
+    """Resolve ``Optional[T]`` / ``T | None`` to ``T`` for nested dataclass detection."""
+    if get_origin(tp) is Union:
+        non_none = [a for a in get_args(tp) if a is not type(None)]
+        if len(non_none) == 1:
+            return non_none[0]
+    return tp
+
+
 def _instantiate(cls, raw: Any) -> Any:
     """Recursively build a dataclass tree from a dict."""
     if not is_dataclass(cls):
@@ -225,6 +289,7 @@ def _instantiate(cls, raw: Any) -> Any:
     if not isinstance(raw, dict):
         raise TypeError(f"Expected a mapping for {cls.__name__}, got {type(raw).__name__}")
 
+    hints = get_type_hints(cls)
     known = {f.name: f for f in fields(cls)}
     unknown = set(raw) - set(known)
     if unknown:
@@ -234,7 +299,11 @@ def _instantiate(cls, raw: Any) -> Any:
     for name, f in known.items():
         if name not in raw:
             continue
-        kwargs[name] = _instantiate(f.type if is_dataclass(f.type) else f.type, raw[name])
+        field_type = _unwrap_optional(hints.get(name, f.type))
+        if is_dataclass(field_type):
+            kwargs[name] = _instantiate(field_type, raw[name])
+        else:
+            kwargs[name] = raw[name]
     return cls(**kwargs)
 
 
@@ -245,6 +314,7 @@ def load_yaml(path: Path) -> RunConfig:
         raw = {}
 
     sub_classes = {
+        "data": DataConfig,
         "ember_step": EMBERStepConfig,
         "selection": SelectionConfig,
         "eval": EvalConfig,
@@ -319,7 +389,7 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
 
 __all__ = [
     "METHODS", "TRAIN_EVAL_MODES",
-    "EMBERStepConfig", "SelectionConfig",
+    "EMBERStepConfig", "SelectionConfig", "DataConfig", "WMDPDataConfig",
     "SNMFGridConfig", "RMUGridConfig", "CRISPGridConfig", "EMBERConfig",
     "PISCESGridConfig",
     "EvalConfig", "RelearningConfig", "CheckpointConfig", "RunConfig",

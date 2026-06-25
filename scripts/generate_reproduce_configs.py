@@ -26,6 +26,7 @@ DEFAULT_INPUT = (
     REPO_ROOT / "configs" / "reproduce_optimal_configs" / "optimal_unlearning_hyperparams.yaml"
 )
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "configs" / "reproduce_optimal_configs"
+JOBS_MANIFEST_NAME = "jobs.manifest.tsv"
 
 MODEL_SPECS: Dict[str, Tuple[str, int]] = {
     "Gemma": ("google/gemma-2-2b-it", 100),
@@ -245,7 +246,10 @@ def build_run_config(
         method_slug: _pin_method_hps(
             method, model_key, hp, dict(base.get(method_slug) or {}),
         ),
-        "eval": dict(base.get("eval") or {}),
+        "eval": {
+            **dict(base.get("eval") or {}),
+            "skip_llm_judge": True,
+        },
         "relearning": dict(base.get("relearning") or {}),
         "checkpoint": {
             "enabled": True,
@@ -286,6 +290,20 @@ def _yaml_header(model_key: str, method: str, concept: str, train_eval: str) -> 
     )
 
 
+def write_jobs_manifest(
+    output_dir: Path,
+    jobs: List[Tuple[str, str, str]],
+) -> Path:
+    """Write ``jobs.manifest.tsv`` for ``scripts/reproduce_unlearning.sh``."""
+    path = output_dir / JOBS_MANIFEST_NAME
+    lines = [
+        f"{rel_config}\t{concept}\t{train_eval}"
+        for rel_config, concept, train_eval in sorted(jobs)
+    ]
+    path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+    return path
+
+
 def write_config(path: Path, model_key: str, method: str, concept: str,
                  cfg: Dict[str, Any]) -> None:
     meta = cfg.pop("_reproduce_meta")
@@ -299,13 +317,14 @@ def generate_configs(
     output_dir: Path,
     *,
     dry_run: bool = False,
-) -> List[Path]:
+) -> Tuple[List[Path], List[Tuple[str, str, str]]]:
     tree = yaml.safe_load(input_path.read_text(encoding="utf-8"))
     if not isinstance(tree, dict):
         raise ValueError(f"Expected mapping in {input_path}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     written: List[Path] = []
+    jobs: List[Tuple[str, str, str]] = []
 
     for model_key, methods in tree.items():
         if model_key not in MODEL_SPECS:
@@ -323,6 +342,8 @@ def generate_configs(
                     continue
                 cfg = build_run_config(model_key, method, concept, hp)
                 out_path = config_path(output_dir, method, model_key, concept)
+                rel_config = str(out_path.relative_to(REPO_ROOT))
+                jobs.append((rel_config, concept, TRAIN_EVAL_BY_METHOD[method]))
                 if dry_run:
                     written.append(out_path)
                     continue
@@ -330,7 +351,10 @@ def generate_configs(
                 write_config(out_path, model_key, method, concept, cfg)
                 written.append(out_path)
 
-    return written
+    if not dry_run:
+        write_jobs_manifest(output_dir, jobs)
+
+    return written, jobs
 
 
 def main() -> None:
@@ -356,11 +380,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    paths = generate_configs(args.input, args.output_dir, dry_run=args.dry_run)
+    paths, jobs = generate_configs(args.input, args.output_dir, dry_run=args.dry_run)
     action = "Would write" if args.dry_run else "Wrote"
     print(f"{action} {len(paths)} config(s) to {args.output_dir}")
     for path in sorted(paths):
         print(f"  {path.relative_to(REPO_ROOT)}")
+    if not args.dry_run and jobs:
+        manifest = args.output_dir / JOBS_MANIFEST_NAME
+        print(f"Wrote {len(jobs)} job(s) to {manifest.relative_to(REPO_ROOT)}")
 
 
 if __name__ == "__main__":

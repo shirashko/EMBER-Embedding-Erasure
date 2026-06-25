@@ -1,0 +1,35 @@
+{
+  "data_root": "/home/morg/students/rashkovits/EMBER-Embedding-Erasure/data/wmdp",
+  "domain": "bio",
+  "max_len": 1000,
+  "prepared_at": "2026-06-25T12:36:56.586372+00:00",
+  "seed": 42,
+  "splits": {
+    "forget": {
+      "domain": "bio",
+      "max_len": 1000,
+      "n_after_preprocess": 24441,
+      "n_examples": 5000,
+      "n_raw": 24441,
+      "n_rows": 5000,
+      "path": "/home/morg/students/rashkovits/EMBER-Embedding-Erasure/data/wmdp/bio/bio_forget_dataset_cleaned.jsonl",
+      "seed": 42,
+      "skipped": false,
+      "source": "hf:cais/wmdp-bio-forget-corpus",
+      "split": "forget"
+    },
+    "retain": {
+      "domain": "bio",
+      "max_len": 1000,
+      "n_after_preprocess": 60886,
+      "n_examples": 5000,
+      "n_raw": 60887,
+      "n_rows": 5000,
+      "path": "/home/morg/students/rashkovits/EMBER-Embedding-Erasure/data/wmdp/bio/bio_retain_dataset_cleaned.jsonl",
+      "seed": 43,
+      "skipped": false,
+      "source": "hf:cais/wmdp-corpora/bio-retain-corpus",
+      "split": "retain"
+    }
+  }
+}

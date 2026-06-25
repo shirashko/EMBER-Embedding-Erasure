@@ -20,7 +20,6 @@ own per-range cache on the instance.
 """
 from __future__ import annotations
 
-import json
 import os
 import sys
 from pathlib import Path
@@ -31,14 +30,12 @@ import torch
 from ember.erasure import embed_edit, io, log
 from ember.erasure.config import RunConfig
 from ember.erasure.methods.base import Method, register
-from ember.local_datasets import ConceptDataset
+from ember.forget_retain import load_coherency_prompts, load_forget_retain
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 sys.path.append(str(ROOT_DIR))
 sys.path.append(str(ROOT_DIR / "external" / "CRISP"))
 sys.path.append(str(ROOT_DIR / "external" / "CRISP" / "crisp"))
-
-COHER_PROMPTS_PATH = ROOT_DIR / "data" / "coherency_prompts.json"
 
 GEMMA_LAYER_RANGES: List[Tuple[int, int, int]] = [
     (4, 14, 2),
@@ -81,17 +78,14 @@ def resolve_layer_ranges(cfg: Any, model_name: str) -> List[Tuple[int, int, int]
     return validate_layer_ranges(cfg.layer_ranges, model_name)
 
 
-def _load_coherency_prompts(concept_name: str) -> List[str]:
-    if not COHER_PROMPTS_PATH.exists():
-        raise FileNotFoundError(f"Missing coherency prompts JSON: {COHER_PROMPTS_PATH}")
-    mp = json.loads(COHER_PROMPTS_PATH.read_text(encoding="utf-8"))
-    if concept_name not in mp:
-        raise KeyError(f"Concept {concept_name!r} not in {COHER_PROMPTS_PATH}")
-    prompts = mp[concept_name]
-    if not isinstance(prompts, list) or len(prompts) < 20:
-        raise ValueError(f"Need at least 20 coherency prompts for {concept_name!r}, "
-                         f"got {len(prompts) if isinstance(prompts, list) else 'N/A'}")
-    return prompts[:20]
+def _layer_cache_valid(layer_path: Path) -> bool:
+    """True when a layer dir already holds downloaded SAE weights."""
+    if not layer_path.is_dir():
+        return False
+    return any(
+        f.is_file() and f.suffix in (".pt", ".safetensors", ".npz", ".json")
+        for f in layer_path.rglob("*")
+    )
 
 
 def _download_saes_once(model_name: str, layer_ranges: List[Tuple[int, int, int]],
@@ -104,28 +98,27 @@ def _download_saes_once(model_name: str, layer_ranges: List[Tuple[int, int, int]
     cache_dir = ROOT_DIR / "external" / "CRISP" / "crisp" / sae_cache
     cache_dir.mkdir(parents=True, exist_ok=True)
 
+    # hf_hub_download writes to HF cache; use a writable dir if the shared
+    # hub cache (e.g. /home/morg/dataset/models) is read-only on compute nodes.
+    hub_cache = os.environ.get("HF_HOME") or os.environ.get("HUGGINGFACE_HUB_CACHE")
+    if hub_cache:
+        hub_path = Path(hub_cache)
+        if not os.access(hub_path, os.W_OK):
+            writable = Path.home() / "hf_cache"
+            writable.mkdir(parents=True, exist_ok=True)
+            os.environ["HF_HOME"] = str(writable)
+            os.environ["HUGGINGFACE_HUB_CACHE"] = str(writable / "hub")
+
     is_llama = "llama" in model_name.lower()
     for layer in all_layers:
         layer_path = cache_dir / f"layer_{layer}"
-        valid = (layer_path.exists() and layer_path.is_dir()
-                 and any(f.suffix in (".pt", ".safetensors", ".npz", ".json")
-                         for f in layer_path.iterdir()))
-        if valid:
+        if _layer_cache_valid(layer_path):
             continue
         log.info("CRISP: downloading missing SAE for layer %d", layer)
         if is_llama:
             TopkSae.download_and_save(layer=layer, save_path=cache_dir)
         else:
             JumpReLUSAE.download_and_save(layer=layer, save_path=cache_dir)
-
-
-def _build_crisp_data(concept_name: str, max_len: int, seed: int):
-    data = ConceptDataset(concept_name).as_forget_retain(seed=seed)
-    forget, retain = data["forget"], data["retain"]
-    if max_len and max_len > 0:
-        forget = [s for s in forget if len(s) <= max_len]
-        retain = [s for s in retain if len(s) <= max_len]
-    return forget, retain
 
 
 def _resolve_sae_cache(model_name: str, configured: str) -> str:
@@ -181,13 +174,14 @@ class CRISPMethod(Method):
                          common: RunConfig) -> None:
         if not self._saes_downloaded:
             sae_cache = _resolve_sae_cache(common.model_name, common.crisp.sae_cache)
-            _download_saes_once(common.model_name, _layer_ranges(common.model_name),
-                                sae_cache)
+            layer_ranges = resolve_layer_ranges(common.crisp, common.model_name)
+            _download_saes_once(common.model_name, layer_ranges, sae_cache)
             self._saes_downloaded = True
 
-        max_len = common.crisp.max_len if hasattr(common.crisp, "max_len") else 2000
-        self._forget, self._retain = _build_crisp_data(concept, max_len, int(common.seed))
-        self._coher = _load_coherency_prompts(concept)
+        max_len = common.crisp.max_len
+        corpora = load_forget_retain(concept, common, max_len=max_len)
+        self._forget, self._retain = corpora["forget"], corpora["retain"]
+        self._coher = load_coherency_prompts(concept, common)
 
     def on_concept_end(self, hf_model: Any, concept: str,
                        common: RunConfig) -> None:

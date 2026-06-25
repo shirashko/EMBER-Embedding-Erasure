@@ -1,0 +1,4 @@
+configs/wmdp_configs/crisp/gemma/bio.yaml	bio	mc
+configs/wmdp_configs/crisp/gemma/cyber.yaml	cyber	mc
+configs/wmdp_configs/crisp/llama/bio.yaml	bio	mc
+configs/wmdp_configs/crisp/llama/cyber.yaml	cyber	mc

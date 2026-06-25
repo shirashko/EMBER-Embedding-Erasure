@@ -43,3 +43,9 @@ notebooks/.ipynb_checkpoints/
 slurm_outputs/
 slurm_errors/
 slurm/
+
+# WMDP prepared corpora (large; run scripts/prepare_wmdp_corpora.py)
+data/wmdp/**/bio_*_dataset_cleaned.jsonl
+data/wmdp/**/cyber_*_dataset_cleaned.jsonl
+data/wmdp/**/*_mcq.json
+data/wmdp/raw/

@@ -1,0 +1,35 @@
+{
+  "data_root": "/home/morg/students/rashkovits/EMBER-Embedding-Erasure/data/wmdp",
+  "domain": "cyber",
+  "max_len": 1000,
+  "prepared_at": "2026-06-25T12:37:08.068370+00:00",
+  "seed": 42,
+  "splits": {
+    "forget": {
+      "domain": "cyber",
+      "max_len": 1000,
+      "n_after_preprocess": 1000,
+      "n_examples": null,
+      "n_raw": 1000,
+      "n_rows": 1000,
+      "path": "/home/morg/students/rashkovits/EMBER-Embedding-Erasure/data/wmdp/cyber/cyber_forget_dataset_cleaned.jsonl",
+      "seed": 42,
+      "skipped": false,
+      "source": "hf:cais/wmdp-corpora/cyber-forget-corpus",
+      "split": "forget"
+    },
+    "retain": {
+      "domain": "cyber",
+      "max_len": 1000,
+      "n_after_preprocess": 4467,
+      "n_examples": null,
+      "n_raw": 4472,
+      "n_rows": 4467,
+      "path": "/home/morg/students/rashkovits/EMBER-Embedding-Erasure/data/wmdp/cyber/cyber_retain_dataset_cleaned.jsonl",
+      "seed": 43,
+      "skipped": false,
+      "source": "hf:cais/wmdp-corpora/cyber-retain-corpus",
+      "split": "retain"
+    }
+  }
+}
