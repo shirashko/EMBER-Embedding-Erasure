@@ -38,7 +38,6 @@ eval:
   alpaca: true
   min_mmlu: 0.7
   max_qa_acc: 0.6
-  skip_llm_judge: true
 relearning:
   enabled: true
   max_paragraphs: 100
