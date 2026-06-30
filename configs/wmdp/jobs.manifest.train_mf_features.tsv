@@ -1,0 +1,4 @@
+configs/wmdp/train_mf_features/gemma/bio.yaml
+configs/wmdp/train_mf_features/gemma/cyber.yaml
+configs/wmdp/train_mf_features/llama/bio.yaml
+configs/wmdp/train_mf_features/llama/cyber.yaml

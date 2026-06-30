@@ -1,0 +1,4 @@
+configs/wmdp/snmf/gemma/bio.yaml	bio	mc
+configs/wmdp/snmf/gemma/cyber.yaml	cyber	mc
+configs/wmdp/snmf/llama/bio.yaml	bio	mc
+configs/wmdp/snmf/llama/cyber.yaml	cyber	mc
