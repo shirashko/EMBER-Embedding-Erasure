@@ -1,0 +1,51 @@
+# RMU WMDP-Bio (Llama-3.1-8B). HPs from CRISP paper RMU baseline.
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/wmdp/rmu/llama/bio.yaml \
+#       --train-eval mc --concepts bio --features-source local
+
+method: rmu
+model_name: meta-llama/Llama-3.1-8B-Instruct
+rank: 200
+seed: 42
+topk: 1
+run_tests_after_train: true
+features_source: local
+
+selection:
+  ratio_thresh: 2.0
+
+ember_step:
+  enabled: false
+
+data:
+  source: wmdp
+  wmdp:
+    retain_type: wiki
+
+rmu:
+  lr_grid: [1.12e-5]
+  alpha_grid: [5.0]
+  steering_grid: [30.0]
+  batch_size: 8
+  max_num_batches: 150
+  min_len: 50
+  max_len: 1000
+  update_settings:
+    - setting_name: S1_lid7_L567
+      layer_id: 7
+      layer_ids: "5,6,7"
+
+eval:
+  alpaca: true
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+  skip_llm_judge: true
+  alpaca_batch_size: 75
+
+relearning:
+  enabled: false
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints

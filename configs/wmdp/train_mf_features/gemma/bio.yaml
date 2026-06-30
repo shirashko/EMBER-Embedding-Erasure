@@ -1,0 +1,25 @@
+# Train MLP (SNMF) features on WMDP-Bio corpora (Gemma-2-2B).
+#
+# Prereq:
+#   python scripts/prepare_wmdp_corpora.py --domain bio --seed 42
+#
+# Usage (via SLURM runner):
+#   ./scripts/run_wmdp_train_mf_features.sh 0
+#   sbatch slurm/train_wmdp_mf_features.slurm
+
+model_name: google/gemma-2-2b-it
+rank: 200
+seed: 42
+concept: bio
+
+data:
+  source: wmdp
+  wmdp:
+    retain_type: bio
+    data_root: data/wmdp
+
+tracks:
+  skip_mlp: false
+  skip_embedding: true
+
+outdir: mf_outputs

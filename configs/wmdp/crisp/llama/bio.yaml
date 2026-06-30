@@ -3,7 +3,7 @@
 # k=10, λ=40, LoRA rank 8, lr=4e-5.
 #
 # Usage:
-#   python -m ember.run_erasure --config configs/wmdp_configs/crisp/llama/bio.yaml \
+#   python -m ember.run_erasure --config configs/wmdp/crisp/llama/bio.yaml \
 #       --train-eval mc --concepts bio
 
 method: crisp
