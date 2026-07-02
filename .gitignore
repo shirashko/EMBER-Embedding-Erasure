@@ -12,7 +12,8 @@ build/
 *.env
 
 # Model / feature outputs (large, user-generated)
-mf_outputs/
+mf_outputs*/
+unlearned_checkpoints/
 results/
 *.log
 
@@ -38,3 +39,8 @@ notebooks/.ipynb_checkpoints/
 # Editor
 .vscode/
 .idea/
+
+slurm*/
+
+# WMDP prepared corpora (run scripts/prepare_wmdp_corpora.py)
+data/wmdp/*/
