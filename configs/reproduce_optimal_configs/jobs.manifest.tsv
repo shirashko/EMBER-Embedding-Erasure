@@ -1,0 +1,24 @@
+configs/reproduce_optimal_configs/crisp/gemma/ancient_rome.yaml	Ancient Rome	mc
+configs/reproduce_optimal_configs/crisp/gemma/golf.yaml	Golf	mc
+configs/reproduce_optimal_configs/crisp/gemma/uranium.yaml	Uranium	mc
+configs/reproduce_optimal_configs/crisp/llama/ancient_rome.yaml	Ancient Rome	mc
+configs/reproduce_optimal_configs/crisp/llama/golf.yaml	Golf	mc
+configs/reproduce_optimal_configs/crisp/llama/uranium.yaml	Uranium	mc
+configs/reproduce_optimal_configs/pisces/gemma/ancient_rome.yaml	Ancient Rome	open
+configs/reproduce_optimal_configs/pisces/gemma/golf.yaml	Golf	open
+configs/reproduce_optimal_configs/pisces/gemma/uranium.yaml	Uranium	open
+configs/reproduce_optimal_configs/pisces/llama/ancient_rome.yaml	Ancient Rome	open
+configs/reproduce_optimal_configs/pisces/llama/golf.yaml	Golf	open
+configs/reproduce_optimal_configs/pisces/llama/uranium.yaml	Uranium	open
+configs/reproduce_optimal_configs/rmu/gemma/ancient_rome.yaml	Ancient Rome	mc
+configs/reproduce_optimal_configs/rmu/gemma/golf.yaml	Golf	mc
+configs/reproduce_optimal_configs/rmu/gemma/uranium.yaml	Uranium	mc
+configs/reproduce_optimal_configs/rmu/llama/ancient_rome.yaml	Ancient Rome	mc
+configs/reproduce_optimal_configs/rmu/llama/golf.yaml	Golf	mc
+configs/reproduce_optimal_configs/rmu/llama/uranium.yaml	Uranium	mc
+configs/reproduce_optimal_configs/snmf/gemma/ancient_rome.yaml	Ancient Rome	mc
+configs/reproduce_optimal_configs/snmf/gemma/golf.yaml	Golf	mc
+configs/reproduce_optimal_configs/snmf/gemma/uranium.yaml	Uranium	mc
+configs/reproduce_optimal_configs/snmf/llama/ancient_rome.yaml	Ancient Rome	mc
+configs/reproduce_optimal_configs/snmf/llama/golf.yaml	Golf	mc
+configs/reproduce_optimal_configs/snmf/llama/uranium.yaml	Uranium	mc
