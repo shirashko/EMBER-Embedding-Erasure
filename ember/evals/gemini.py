@@ -1,6 +1,6 @@
 """Gemini-as-judge wrapper for open QA and Alpaca scoring.
 
-Thin client over ``google.generativeai`` with:
+Thin client over ``google.genai`` with:
 - Per-process rate limiting (50 RPM per job, configurable).
 - Retry on transient errors with hard cap on cumulative quota failures.
 - Atomic per-call usage logging to ``gemini_usage_log.jsonl`` (NIS cost).
@@ -30,7 +30,14 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import google.generativeai as gai  # type: ignore
+try:
+    from google import genai  # type: ignore
+    from google.genai import types  # type: ignore
+    _GENAI_IMPORT_ERROR: Optional[Exception] = None
+except Exception as _e:  # pragma: no cover - import guard
+    genai = None  # type: ignore[assignment]
+    types = None  # type: ignore[assignment]
+    _GENAI_IMPORT_ERROR = _e
 
 from ember.evals.schema import GeminiTokenStats
 
@@ -50,7 +57,7 @@ OUTPUT_PRICE_NIS_PER_1M = 1.259279999
 ROOT_DIR = Path(__file__).resolve().parents[2]
 USAGE_LOG_PATH = ROOT_DIR / "gemini_usage_log.jsonl"
 
-DEFAULT_MODEL_NAME = "models/gemini-2.5-flash-lite"
+DEFAULT_MODEL_NAME = "gemini-2.5-flash-lite"
 
 # ========================================================================== #
 # Module-level rate limiter + quota counter                                   #
@@ -182,6 +189,11 @@ Begin your evaluation by briefly describing the fluency of the sentence, noting 
     def __init__(self,
                  model_name: str = DEFAULT_MODEL_NAME,
                  token_stats: Optional[GeminiTokenStats] = None) -> None:
+        if genai is None or types is None:
+            raise RuntimeError(
+                "google-genai is not installed. Install dependencies from "
+                "requirements.txt / pyproject.toml before running Gemini evals."
+            ) from _GENAI_IMPORT_ERROR
         api_key = (os.getenv("GEMINI_API_KEY")
                    or os.getenv("GOOGLE_API_KEY")
                    or os.getenv("GEMINI_API_TOKEN"))
@@ -190,8 +202,8 @@ Begin your evaluation by briefly describing the fluency of the sentence, noting 
                 "No Gemini API key found. Set one of "
                 "GEMINI_API_KEY / GOOGLE_API_KEY / GEMINI_API_TOKEN."
             )
-        gai.configure(api_key=api_key)
-        self.model = gai.GenerativeModel(model_name)
+        self.model_name = self._normalize_model_name(model_name)
+        self.client = genai.Client(vertexai=True, api_key=api_key)
 
         gen_kwargs: Dict[str, Any] = {
             "max_output_tokens": MAX_OUTPUT_TOKENS,
@@ -203,7 +215,7 @@ Begin your evaluation by briefly describing the fluency of the sentence, noting 
                 gen_kwargs["temperature"] = float(temp_env)
             except ValueError:
                 print(f"[Gemini] ignoring non-numeric GEMINI_TEMPERATURE={temp_env!r}")
-        self.generation_config = gai.types.GenerationConfig(**gen_kwargs)
+        self.generation_config = types.GenerateContentConfig(**gen_kwargs)
         self.token_stats = token_stats
 
     # ------------------------------------------------------------------ #
@@ -215,7 +227,9 @@ Begin your evaluation by briefly describing the fluency of the sentence, noting 
 
         if self.token_stats is not None:
             try:
-                ct = self.model.count_tokens(prompt)
+                ct = self.client.models.count_tokens(
+                    model=self.model_name, contents=prompt,
+                )
                 prompt_toks = getattr(ct, "total_tokens", None)
                 if prompt_toks is None and isinstance(ct, dict):
                     prompt_toks = int(ct.get("total_tokens", 0))
@@ -227,8 +241,10 @@ Begin your evaluation by briefly describing the fluency of the sentence, noting 
         for _ in range(10):
             try:
                 self._respect_rate_limit()
-                response = self.model.generate_content(
-                    prompt, generation_config=self.generation_config,
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt,
+                    config=self.generation_config,
                 )
 
                 billed_prompt_toks = 0
@@ -245,13 +261,14 @@ Begin your evaluation by briefly describing the fluency of the sentence, noting 
                     self.token_stats.add(0, billed_output_toks, 0)
                 _append_usage(billed_prompt_toks, billed_output_toks)
 
-                fr = response.candidates[0].finish_reason
-                if fr != 1:
+                candidates = getattr(response, "candidates", None) or []
+                fr = getattr(candidates[0], "finish_reason", None) if candidates else None
+                if not self._is_stop_finish_reason(fr):
                     try:
                         partial = response.text
                     except Exception:
                         partial = ""
-                    raise GeminiBadFinishError(fr, partial)
+                    raise GeminiBadFinishError(int(fr) if isinstance(fr, int) else -1, partial)
                 return response.text
             except GeminiBadFinishError:
                 raise
@@ -289,6 +306,22 @@ Begin your evaluation by briefly describing the fluency of the sentence, noting 
                     return
                 sleep_for = 60.0 - (now - _REQUEST_TIMES[0]) + 0.1
             time.sleep(sleep_for)
+
+    @staticmethod
+    def _normalize_model_name(model_name: str) -> str:
+        # google-genai expects plain model IDs (e.g. "gemini-2.5-flash-lite").
+        if model_name.startswith("models/"):
+            return model_name.split("/", 1)[1]
+        return model_name
+
+    @staticmethod
+    def _is_stop_finish_reason(finish_reason: Any) -> bool:
+        if finish_reason is None:
+            return False
+        if finish_reason == 1:
+            return True
+        text = str(getattr(finish_reason, "name", finish_reason)).upper()
+        return text == "STOP"
 
     # ------------------------------------------------------------------ #
     # Parsing helpers                                                     #

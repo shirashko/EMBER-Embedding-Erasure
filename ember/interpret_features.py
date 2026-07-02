@@ -9,9 +9,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import concurrent.futures
 
-import google.generativeai as gai
 import pandas as pd
 from tqdm import tqdm
+from google import genai  # type: ignore
+from google.genai import types  # type: ignore
 
 from ember.timing import Timer
 from ember.utils import _safe_concept, _safe_model_name, update_timing
@@ -101,24 +102,38 @@ def _existing_keys(df: pd.DataFrame) -> set:
 # -------------------- Gemini Client --------------------
 
 class SimpleGeminiClient:
-    def __init__(self, model_name: str = "models/gemini-2.5-flash-lite", max_retries: int = 3, sleep_seconds: float = 5.0):
+    def __init__(self, model_name: str = "gemini-2.5-flash-lite", max_retries: int = 3, sleep_seconds: float = 5.0):
         api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_TOKEN") or os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise RuntimeError("No Gemini API key found. Set GOOGLE_API_KEY, GEMINI_API_TOKEN, or GEMINI_API_KEY.")
-        gai.configure(api_key=api_key)
-        self.model = gai.GenerativeModel(model_name)
+        self.model_name = self._normalize_model_name(model_name)
+        self.client = genai.Client(vertexai=True, api_key=api_key)
+        self.gen_config = types.GenerateContentConfig(temperature=0.2, max_output_tokens=350)
         self.max_retries = max_retries
         self.sleep_seconds = sleep_seconds
+
+    @staticmethod
+    def _normalize_model_name(model_name: str) -> str:
+        # google-genai expects plain model IDs (e.g. "gemini-2.5-flash-lite").
+        if model_name.startswith("models/"):
+            return model_name.split("/", 1)[1]
+        return model_name
 
     def generate(self, prompt: str) -> str:
         last_err: Optional[Exception] = None
         for attempt in range(1, self.max_retries + 1):
             try:
-                resp = self.model.generate_content(prompt)
-                if not resp.candidates: raise RuntimeError("No candidates returned from Gemini.")
+                resp = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt,
+                    config=self.gen_config,
+                )
                 text = getattr(resp, "text", None)
                 if not isinstance(text, str) or not text.strip():
-                    parts = getattr(getattr(resp.candidates[0], "content", None), "parts", None)
+                    candidates = getattr(resp, "candidates", None) or []
+                    if not candidates:
+                        raise RuntimeError("No candidates returned from Gemini.")
+                    parts = getattr(getattr(candidates[0], "content", None), "parts", None)
                     if parts:
                         text = "\n".join([getattr(p, "text", "") for p in parts if getattr(p, "text", "").strip()])
                 if not isinstance(text, str) or not text.strip(): raise RuntimeError("Gemini returned empty text.")
@@ -331,7 +346,7 @@ def main():
     parser.add_argument("--activation-col", type=str, default="activating_tokens")
     parser.add_argument("--projection-col", type=str, default="projection_top_tokens")
     parser.add_argument("--top-k", type=int, default=20)
-    parser.add_argument("--gemini-model", type=str, default="models/gemini-2.5-flash-lite")
+    parser.add_argument("--gemini-model", type=str, default="gemini-2.5-flash-lite")
     parser.add_argument("--max-workers", type=int, default=5)
     parser.add_argument("--save-every", type=int, default=50)
     parser.add_argument("--resume", action=argparse.BooleanOptionalAction, default=True,
