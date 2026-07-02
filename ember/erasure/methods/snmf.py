@@ -41,6 +41,55 @@ def _layer_ranges(model_name: str) -> Tuple[List[Tuple[int, int]], List[Tuple[in
     return GEMMA_LAYER_RANGES_IN, GEMMA_LAYER_RANGES_OUT
 
 
+def validate_layer_ranges_side(
+    ranges: List[Tuple[int, int]] | List[List[int]],
+    model_name: str,
+    *,
+    side: str,
+) -> List[Tuple[int, int]]:
+    """Ensure each ``(layer_lo, layer_hi)`` is a valid SNMF grid range."""
+    if side not in ("in", "out"):
+        raise ValueError(f"side must be 'in' or 'out', got {side!r}")
+    default_in, default_out = _layer_ranges(model_name)
+    allowed = set(default_in if side == "in" else default_out)
+    normalized = [tuple(int(x) for x in r) for r in ranges]
+    invalid = [r for r in normalized if r not in allowed]
+    if invalid:
+        raise ValueError(
+            f"Invalid SNMF layer_ranges_{side} {invalid} for {model_name!r}; "
+            f"allowed: {sorted(allowed)}"
+        )
+    return normalized
+
+
+def validate_snmf_layer_ranges(
+    ranges_in: Optional[List[List[int]]],
+    ranges_out: Optional[List[List[int]]],
+    model_name: str,
+) -> None:
+    """Validate optional SNMF in/out layer-range overrides."""
+    if ranges_in is not None:
+        validate_layer_ranges_side(ranges_in, model_name, side="in")
+    if ranges_out is not None:
+        validate_layer_ranges_side(ranges_out, model_name, side="out")
+
+
+def resolve_snmf_layer_ranges(
+    cfg: Any, model_name: str,
+) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
+    """Return configured SNMF layer ranges, or model defaults when unset."""
+    default_in, default_out = _layer_ranges(model_name)
+    ranges_in = (
+        validate_layer_ranges_side(cfg.layer_ranges_in, model_name, side="in")
+        if cfg.layer_ranges_in is not None else default_in
+    )
+    ranges_out = (
+        validate_layer_ranges_side(cfg.layer_ranges_out, model_name, side="out")
+        if cfg.layer_ranges_out is not None else default_out
+    )
+    return ranges_in, ranges_out
+
+
 def _enumerate_side(deltas: List[float], ranges: List[Tuple[int, int]]) -> List[Tuple[float, int, int]]:
     """Build ``(delta, lo, hi)`` cells for one side of the grid.
 
@@ -78,7 +127,7 @@ class SNMFMethod(Method):
 
     def enumerate_hps(self, common: RunConfig) -> Iterable[Dict[str, Any]]:
         cfg = common.snmf
-        ranges_in, ranges_out = _layer_ranges(common.model_name)
+        ranges_in, ranges_out = resolve_snmf_layer_ranges(cfg, common.model_name)
 
         in_deltas = cfg.in_deltas if cfg.w_mode in ("in", "both") else [0.0]
         out_deltas = cfg.out_deltas if cfg.w_mode in ("out", "both") else [0.0]

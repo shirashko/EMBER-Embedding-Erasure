@@ -58,6 +58,39 @@ def _layer_ranges(model_name: str) -> List[Tuple[int, int, int]]:
     return LLAMA_LAYER_RANGES if "llama" in model_name.lower() else GEMMA_LAYER_RANGES
 
 
+def validate_layer_ranges(
+    ranges: List[Tuple[int, int, int]] | List[List[int]],
+    model_name: str,
+) -> List[Tuple[int, int, int]]:
+    """Ensure each ``(layer_lo, layer_hi, layer_step)`` is a valid CRISP grid range."""
+    allowed = set(_layer_ranges(model_name))
+    normalized = [tuple(int(x) for x in r) for r in ranges]
+    invalid = [r for r in normalized if r not in allowed]
+    if invalid:
+        raise ValueError(
+            f"Invalid CRISP layer_ranges {invalid} for {model_name!r}; "
+            f"allowed: {sorted(allowed)}"
+        )
+    return normalized
+
+
+def resolve_layer_ranges(cfg: Any, model_name: str) -> List[Tuple[int, int, int]]:
+    """Return configured layer ranges, or the model defaults when unset."""
+    if cfg.layer_ranges is None:
+        return _layer_ranges(model_name)
+    return validate_layer_ranges(cfg.layer_ranges, model_name)
+
+
+def _layer_cache_valid(layer_path: Path) -> bool:
+    """True when a layer dir already holds downloaded SAE weights."""
+    if not layer_path.is_dir():
+        return False
+    return any(
+        f.is_file() and f.suffix in (".pt", ".safetensors", ".npz", ".json")
+        for f in layer_path.rglob("*")
+    )
+
+
 def _load_coherency_prompts(concept_name: str) -> List[str]:
     if not COHER_PROMPTS_PATH.exists():
         raise FileNotFoundError(f"Missing coherency prompts JSON: {COHER_PROMPTS_PATH}")
@@ -81,19 +114,33 @@ def _download_saes_once(model_name: str, layer_ranges: List[Tuple[int, int, int]
     cache_dir = ROOT_DIR / "external" / "CRISP" / "crisp" / sae_cache
     cache_dir.mkdir(parents=True, exist_ok=True)
 
+    # hf_hub_download writes to HF cache; use a writable dir if the shared
+    # hub cache (e.g. /home/morg/dataset/models) is read-only on compute nodes.
+    hub_cache = os.environ.get("HF_HOME") or os.environ.get("HUGGINGFACE_HUB_CACHE")
+    if hub_cache:
+        hub_path = Path(hub_cache)
+        if not os.access(hub_path, os.W_OK):
+            writable = Path.home() / "hf_cache"
+            writable.mkdir(parents=True, exist_ok=True)
+            os.environ["HF_HOME"] = str(writable)
+            os.environ["HUGGINGFACE_HUB_CACHE"] = str(writable / "hub")
+
     is_llama = "llama" in model_name.lower()
     for layer in all_layers:
         layer_path = cache_dir / f"layer_{layer}"
-        valid = (layer_path.exists() and layer_path.is_dir()
-                 and any(f.suffix in (".pt", ".safetensors", ".npz", ".json")
-                         for f in layer_path.iterdir()))
-        if valid:
+        if _layer_cache_valid(layer_path):
             continue
         log.info("CRISP: downloading missing SAE for layer %d", layer)
         if is_llama:
             TopkSae.download_and_save(layer=layer, save_path=cache_dir)
         else:
             JumpReLUSAE.download_and_save(layer=layer, save_path=cache_dir)
+
+
+def _resolve_sae_cache(model_name: str, configured: str) -> str:
+    if "llama" in model_name.lower() and configured == "gemma_sae_cache":
+        return "llama_sae_cache"
+    return configured
 
 
 def _build_crisp_data(concept_name: str, max_len: int, seed: int):
@@ -103,12 +150,6 @@ def _build_crisp_data(concept_name: str, max_len: int, seed: int):
         forget = [s for s in forget if len(s) <= max_len]
         retain = [s for s in retain if len(s) <= max_len]
     return forget, retain
-
-
-def _resolve_sae_cache(model_name: str, configured: str) -> str:
-    if "llama" in model_name.lower() and configured == "gemma_sae_cache":
-        return "llama_sae_cache"
-    return configured
 
 
 class CRISPMethod(Method):
@@ -130,7 +171,8 @@ class CRISPMethod(Method):
     # ------------------------------------------------------------------ #
     def enumerate_hps(self, common: RunConfig) -> Iterable[Dict[str, Any]]:
         cfg = common.crisp
-        for (lo, hi, step) in _layer_ranges(common.model_name):
+        ranges = resolve_layer_ranges(cfg, common.model_name)
+        for (lo, hi, step) in ranges:
             for k in cfg.k_features_grid:
                 for alpha in cfg.alpha_grid:
                     for lr in cfg.lr_grid:
@@ -157,8 +199,8 @@ class CRISPMethod(Method):
                          common: RunConfig) -> None:
         if not self._saes_downloaded:
             sae_cache = _resolve_sae_cache(common.model_name, common.crisp.sae_cache)
-            _download_saes_once(common.model_name, _layer_ranges(common.model_name),
-                                sae_cache)
+            layer_ranges = resolve_layer_ranges(common.crisp, common.model_name)
+            _download_saes_once(common.model_name, layer_ranges, sae_cache)
             self._saes_downloaded = True
 
         max_len = common.crisp.max_len if hasattr(common.crisp, "max_len") else 2000
