@@ -11,6 +11,12 @@ All set `ember_step.enabled: false`, so only the method's own HPs are swept.
 
 **Pipeline:** grid (all cells) → **top-K filter** → validate (top K + Alpaca) → final test (best HP).
 
+**Reading the tables below**
+
+- **Swept** = every combination of these values is one grid cell.
+- **Source:** `YAML` = listed in the config file; `code default` = used when the YAML key is missing or `null`.
+- **Fixed** = same value for every cell (not part of the search).
+
 ---
 
 ## Shared config keys
@@ -40,40 +46,45 @@ All set `ember_step.enabled: false`, so only the method's own HPs are swept.
 
 Configs: `configs/rmu_{gemma,llama}.yaml`
 
-YAML sets `lr_grid`, `alpha_grid`, `steering_grid` to `null` → code defaults below.
+### Grid search (swept)
 
-| Swept param | Meaning |
-|-------------|---------|
-| `lr_grid` | Fine-tuning learning rate. |
-| `alpha_grid` | Retain-loss weight (preserve neutral behavior). |
-| `steering_grid` | Forget steering-vector magnitude. |
-| `update_settings` | Layer preset: activation layer (`layer_id`) + weight-update layers (`layer_ids`). See table below. |
+| Parameter | Values | Source |
+|-----------|--------|--------|
+| `lr_grid` | `1e-5`, `1e-4`, `3e-4` | code default (`lr_grid: null` in YAML) |
+| `alpha_grid` | Gemma: `10`, `30`, `50`, `100` · Llama: `30`, `50`, `100`, `300` | code default |
+| `steering_grid` | `30`, `100`, `300`, `1000` | code default |
+| `update_settings` | 3 presets per model (see below) | code default |
 
-Each preset is `(setting_name, layer_id, layer_ids)`. Weights updated at `layer_ids` use `param_ids: [6]` (WMDP default MLP matrix). Activations for the RMU loss are read from the full block at `layer_id`.
+`update_settings` fields: `layer_id` = activation layer for RMU loss; `layer_ids` = layers whose weights are updated (`param_ids: [6]`, WMDP MLP default).
 
-**Gemma-2** (`google/gemma-2-2b-it`, 26 layers):
+**Gemma-2** (`google/gemma-2-2b-it`):
 
-| Preset | `layer_id` (activations) | `layer_ids` (weight updates) |
-|--------|--------------------------|------------------------------|
+| Preset | `layer_id` | `layer_ids` |
+|--------|------------|-------------|
 | `S1_lid7_L567` | 7 | 5, 6, 7 |
 | `S2_lid8_L678` | 8 | 6, 7, 8 |
 | `S3_lid6_L456` | 6 | 4, 5, 6 |
 
-**Llama-3.1** (`meta-llama/Llama-3.1-8B-Instruct`, 32 layers):
+**Llama-3.1** (`meta-llama/Llama-3.1-8B-Instruct`):
 
-| Preset | `layer_id` (activations) | `layer_ids` (weight updates) |
-|--------|--------------------------|------------------------------|
+| Preset | `layer_id` | `layer_ids` |
+|--------|------------|-------------|
 | `S1_lid7_L567` | 7 | 5, 6, 7 |
 | `S2_lid9_L789` | 9 | 7, 8, 9 |
 | `S3_lid11_L91011` | 11 | 9, 10, 11 |
 
-Defined in `ember/erasure/methods/rmu.py` (`GEMMA_UPDATE_SETTINGS`, `LLAMA_UPDATE_SETTINGS`).
+Presets defined in `ember/erasure/methods/rmu.py`.
 
-**Gemma defaults:** `lr` ×3, `alpha` ×4 `[10,30,50,100]`, `steering` ×4, `update_settings` ×3 → **144**.
+**Total:** `3 × 4 × 4 × 3 = 144`
 
-**Llama defaults:** same `lr`/`steering`; `alpha` ×4 `[30,50,100,300]`.
+### Fixed (not swept)
 
-**Fixed (not swept):** `batch_size`, `max_num_batches`, `min_len`, `max_len`.
+| Parameter | Value | Source |
+|-----------|-------|--------|
+| `batch_size` | `16` | YAML |
+| `max_num_batches` | `150` | YAML |
+| `min_len` | `50` | YAML |
+| `max_len` | `2000` | YAML |
 
 ---
 
@@ -81,16 +92,31 @@ Defined in `ember/erasure/methods/rmu.py` (`GEMMA_UPDATE_SETTINGS`, `LLAMA_UPDAT
 
 Configs: `configs/crisp_{gemma,llama}.yaml`
 
-| Swept param | Meaning |
-|-------------|---------|
-| `k_features_grid` | Top SAE features to target per layer. |
-| `alpha_grid` | Unlearning loss strength. |
-| `lr_grid` | LoRA learning rate. |
-| `layer_ranges` | Layer span `(lo, hi, step)` for SAE+LoRA (4 defaults if unset). |
+### Grid search (swept)
 
-**From YAML:** `k_features` ×3 `[5,10,20]`, `alpha` ×4, `lr` ×3, `layer_ranges` ×4 → **144**.
+| Parameter | Values | Source |
+|-----------|--------|--------|
+| `k_features_grid` | `5`, `10`, `20` | YAML |
+| `alpha_grid` | `5.0`, `10.0`, `20.0`, `50.0` | YAML |
+| `lr_grid` | `5e-5`, `1e-4`, `5e-4` | YAML |
+| `layer_ranges` | Gemma: `(4,14,2)`, `(5,15,2)`, `(4,20,2)`, `(5,21,2)` · Llama: `(5,19,2)`, `(4,18,2)`, `(5,29,2)`, `(4,28,2)` | code default (key omitted in YAML) |
 
-**Fixed:** `num_epochs`, `lora_rank`, `beta`, `gamma`, `sae_cache`, batch sizes, `max_len`.
+Each `layer_ranges` entry is `(layer_lo, layer_hi, layer_step)`: attach SAEs and LoRA on layers `lo, lo+step, …, hi`.
+
+**Total:** `3 × 4 × 3 × 4 = 144`
+
+### Fixed (not swept)
+
+| Parameter | Gemma | Llama | Source |
+|-----------|-------|-------|--------|
+| `num_epochs` | `2` | `2` | YAML |
+| `lora_rank` | `4` | `4` | YAML |
+| `beta` | `0.99` | `0.99` | YAML |
+| `gamma` | `0.01` | `0.01` | YAML |
+| `batch_size` | `16` | `16` | YAML |
+| `lora_batch_size` | `16` | `8` | YAML |
+| `sae_cache` | `gemma_sae_cache` | `llama_sae_cache` | YAML |
+| `max_len` | `2000` | `2000` | code default |
 
 ---
 
@@ -98,14 +124,31 @@ Configs: `configs/crisp_{gemma,llama}.yaml`
 
 Configs: `configs/snmf_{gemma,llama}.yaml`
 
-| Swept param | Meaning |
-|-------------|---------|
-| `in_deltas` / `out_deltas` | Edit strength on MLP up_proj / down_proj. |
-| `layer_ranges_in` / `layer_ranges_out` | Layer spans for in/out edits (3 defaults each if unset). |
-| `w_mode` | `both` = sweep in and out together. |
-| `feature_source` | Which SNMF features to use (`all`, `activation`, etc.). |
+### Grid search (swept)
 
-**From YAML:** `w_mode: both`, deltas ×4 each side, ranges ×3 each → `(4×3) × (4×3)` = **144**.
+With `w_mode: both`, the grid is the Cartesian product of in-side and out-side sweeps.
+
+| Parameter | Values | Source |
+|-----------|--------|--------|
+| `in_deltas` | `1.0`, `4.0`, `7.0`, `10.0` | YAML |
+| `out_deltas` | `1.0`, `4.0`, `7.0`, `10.0` | YAML |
+| `layer_ranges_in` | Gemma: `(0,25)`, `(0,8)`, `(0,12)` · Llama: `(0,31)`, `(0,10)`, `(0,16)` | code default |
+| `layer_ranges_out` | Gemma: `(0,8)`, `(9,17)`, `(13,25)` · Llama: `(0,10)`, `(11,21)`, `(16,31)` | code default |
+
+Each layer range is `(layer_lo, layer_hi)` inclusive.
+
+| Parameter | Value | Source |
+|-----------|-------|--------|
+| `w_mode` | `both` | YAML (fixed; enables in×out product) |
+| `feature_source` | `all` | YAML (fixed) |
+
+**Total:** `(4 × 3) × (4 × 3) = 144`
+
+### Fixed (not swept)
+
+| Parameter | Value | Source |
+|-----------|-------|--------|
+| `dtype` | `bf16` | YAML |
 
 ---
 
@@ -113,12 +156,22 @@ Configs: `configs/snmf_{gemma,llama}.yaml`
 
 Configs: `configs/pisces_{gemma,llama}.yaml`
 
-| Swept param | Meaning |
-|-------------|---------|
-| `ks` | Feature sparsity threshold (how many activations to keep). |
-| `values` | Edit magnitude on selected MLP features. |
+### Grid search (swept)
 
-**From YAML:** 12 × 12 → **144**. Features from `data/pisces_concept_features_{gemma,llama}.json`.
+| Parameter | Values | Source |
+|-----------|--------|--------|
+| `ks` | `0.95`, `0.9`, `0.85`, `0.8`, `0.75`, `0.7`, `0.6`, `0.5`, `0.4`, `0.3`, `0.2`, `0.1` | YAML |
+| `values` | `4`, `7`, `10`, `13`, `18`, `21`, `24`, `30`, `36`, `42`, `50`, `60` | YAML |
+
+Feature lists: `data/pisces_concept_features_{gemma,llama}.json` (same for both model YAMLs).
+
+**Total:** `12 × 12 = 144`
+
+### Fixed (not swept)
+
+| Parameter | Value | Source |
+|-----------|-------|--------|
+| `dtype` | `bf16` | YAML |
 
 ---
 

@@ -62,15 +62,59 @@ Unlike CRISP, PISCES targets the **MLP (Feed-Forward) layers**, which function a
 
 ---
 
+### Architecture + Tensor Shapes (What We Edit Exactly)
+
+The two model backbones used here have these core dimensions:
+
+| Model | Layers (`num_hidden_layers`) | Residual width (`d_model = hidden_size`) | MLP width (`d_mlp = intermediate_size`) |
+| --- | --- | --- | --- |
+| `google/gemma-2-2b-it` | `26` | `2304` | `9216` |
+| `meta-llama/Llama-3.1-8B-Instruct` | `32` | `4096` | `14336` |
+
+For one transformer layer `L`, the MLP tensors are:
+
+* `up_proj.weight`: `[d_mlp, d_model]`
+* `gate_proj.weight`: `[d_mlp, d_model]` *(present in both Gemma/Llama MLP blocks, but not edited by PISCES/SNMF in this repo)*
+* `down_proj.weight`: `[d_model, d_mlp]`
+* TransformerLens equivalent: `W_out`: `[d_mlp, d_model]` with `down_proj.weight == W_out.T`
+
+So concretely:
+
+* **Gemma-2-2B-IT**
+  * `up_proj`: `[9216, 2304]`
+  * `down_proj`: `[2304, 9216]`
+  * `W_out` (TL): `[9216, 2304]`
+  * Residual activations (`hidden_states[..., :]`): size `2304`
+* **Llama-3.1-8B-Instruct**
+  * `up_proj`: `[14336, 4096]`
+  * `down_proj`: `[4096, 14336]`
+  * `W_out` (TL): `[14336, 4096]`
+  * Residual activations (`hidden_states[..., :]`): size `4096`
+
+---
+
 ### Understanding the Terminology
 
-To understand the configuration paths above, it is helpful to define a few key terms specific to Mechanistic Interpretability and the Gemma Scope project:
+To understand the configuration paths above, it is helpful to define a few key terms exactly as they are used in this codebase:
 
-* **Residual vs. MLP Streams:** * *Residual Stream:* The cumulative state of the token at a given layer. Editing here (CRISP) affects the holistic representation of the token before it moves to the next layer.
-* *MLP Stream:* The localized factual processing unit of a specific layer. Editing here (PISCES) targets localized factual associations before they are added to the residual stream.
+* **Residual stream (`type="residual"` in CRISP context):**
+  * Means the per-token hidden state vector flowing between transformer blocks.
+  * Tensor shape during forward pass: `[batch, seq_len, d_model]`.
+  * In CRISP, hooks are registered on `model.model.layers[L]` outputs (block outputs), and the SAE/LoRA intervention modifies those residual vectors.
+  * **Targeted dimension:** `d_model` (2304 for Gemma, 4096 for Llama).
 
+* **MLP stream (`type="mlp"` in PISCES/Scope SAE IDs):**
+  * Means MLP-related representations for a layer, used to construct edits to the output projection.
+  * In this repository, the effective weight edited in HF space is `down_proj.weight` (`[d_model, d_mlp]`), equivalent to editing TL `W_out` (`[d_mlp, d_model]`).
+  * PISCES computes replacements for selected `W_out` rows (indices along the `d_mlp` axis), then syncs to HF as transposed `down_proj`.
+  * **Targeted dimensions:** selected `d_mlp` neurons, each carrying a full `d_model` output vector.
 
-* **Dictionary Size / Expansion (e.g., `16k`, `8x`):** The number of interpretable features (latents) the SAE maps the model's dense activations into. A larger dictionary allows for more granular, monosemantic (single-meaning) concepts.
+* **What "mlp-in" / "mlp-hidden" / "mlp-out" mean here:**
+  * **MLP-in:** input from residual stream into MLP block, width `d_model`.
+  * **MLP hidden:** expanded neuron space inside the FFN, width `d_mlp` (`intermediate_size`).
+  * **MLP-out:** projection back to residual width through `down_proj` / `W_out`, returning to `d_model`.
+
+* **Dictionary Size / Expansion (e.g., `16k`, `32k`, `8x`):** the number of SAE latents used to represent activations/weights. For Llama Scope, `8x` means SAE latent count is 8 times the base stream width used by that SAE family.
 * **`{average_l0_*}`:** This variable represents the $L_0$ norm (the average number of features that activate per token). Because there is an inherent trade-off between *reconstruction fidelity* (requiring high $L_0$) and *feature interpretability/sparsity* (requiring low $L_0$), models like Gemma-2-2b offer a Pareto frontier of options. For PISCES, the pipeline uses a static dictionary mapping to load the "Canonical SAEs" (e.g., `average_l0_82` for Layer 12), ensuring an optimal balance for identifying and editing target features.
 
 ### Summary of SAE Configurations

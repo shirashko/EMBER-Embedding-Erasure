@@ -5,8 +5,8 @@ This script updates:
   1) data/coherency_prompts.json
   2) data/concept_sentences.json
   3) data/mc_questions.json
-
-It intentionally does NOT touch data/open_questions.json.
+  4) data/open_questions.json
+  5) data/relearn_paragraphs.json
 
 MC question layout matches existing EMBER concepts (50 per split):
   - QA_train / QA_test: WMDP forget-target MCQ (bio_mcq.json / cyber_mcq.json)
@@ -33,6 +33,8 @@ DATA_DIR = ROOT / "data"
 COHER_PATH = DATA_DIR / "coherency_prompts.json"
 CONCEPT_SENT_PATH = DATA_DIR / "concept_sentences.json"
 MC_QA_PATH = DATA_DIR / "mc_questions.json"
+OPEN_QA_PATH = DATA_DIR / "open_questions.json"
+RELEARN_PATH = DATA_DIR / "relearn_paragraphs.json"
 
 CRISP_DATA_PATH = ROOT / "external" / "CRISP" / "crisp" / "data.py"
 WMDP_DIR = DATA_DIR / "wmdp"
@@ -91,6 +93,26 @@ def _select_subset(texts: Sequence[str], n: int, seed: int) -> List[str]:
     rnd.shuffle(idx)
     keep = sorted(idx[:n])
     return [texts[i] for i in keep]
+
+
+def _select_disjoint_subset(
+        texts: Sequence[str],
+        exclude: Sequence[str],
+        n: int,
+        seed: int,
+) -> List[str]:
+    """Sample up to ``n`` texts not present in ``exclude``."""
+    if n <= 0:
+        return []
+    excluded = set(exclude)
+    pool = [t for t in texts if t not in excluded]
+    if len(pool) < n:
+        raise ValueError(
+            f"need {n} relearning paragraphs disjoint from concept sentences, "
+            f"but only {len(pool)} remain ({len(texts)} total, "
+            f"{len(excluded)} excluded)"
+        )
+    return _select_subset(pool, n, seed)
 
 
 def _build_mc_records(wmdp_mcq: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -189,6 +211,21 @@ def _build_concept_mc_payload(
     }
 
 
+def _mc_to_open_payload(mc_payload: Dict[str, List[Dict[str, Any]]]) -> Dict[str, List[Dict[str, str]]]:
+    """Convert MC payload to open-QA payload using ``correct_answer`` as free answer."""
+    out: Dict[str, List[Dict[str, str]]] = {}
+    for split_name in ("QA_train", "QA_test", "SimdomQA_train", "SimdomQA_test"):
+        rows = mc_payload.get(split_name, [])
+        out_rows: List[Dict[str, str]] = []
+        for row in rows:
+            q = str(row.get("q", "")).strip()
+            a = str(row.get("correct_answer", "")).strip()
+            if q and a:
+                out_rows.append({"q": q, "a": a})
+        out[split_name] = out_rows
+    return out
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true", help="Write changes to disk.")
@@ -199,6 +236,10 @@ def main() -> None:
     parser.add_argument("--cyber-concept", default="wmdp-cyber")
     parser.add_argument("--bio-sentences", type=int, default=300)
     parser.add_argument("--cyber-sentences", type=int, default=300)
+    parser.add_argument("--bio-relearn-paragraphs", type=int, default=100,
+                        help="Relearning paragraphs for wmdp-bio (disjoint from concept sentences).")
+    parser.add_argument("--cyber-relearn-paragraphs", type=int, default=100,
+                        help="Relearning paragraphs for wmdp-cyber (disjoint from concept sentences).")
     parser.add_argument("--mc-split-size", type=int, default=DEFAULT_MC_SPLIT_SIZE,
                         help="Questions per MC split (default 50, matching other concepts).")
     parser.add_argument("--seed", type=int, default=42)
@@ -208,6 +249,8 @@ def main() -> None:
         raise SystemExit("Choose exactly one of --apply or --dry-run.")
     if args.mc_split_size <= 0:
         raise SystemExit("--mc-split-size must be positive.")
+    if args.bio_relearn_paragraphs < 0 or args.cyber_relearn_paragraphs < 0:
+        raise SystemExit("--bio-relearn-paragraphs and --cyber-relearn-paragraphs must be >= 0.")
 
     split_size = args.mc_split_size
 
@@ -262,6 +305,29 @@ def main() -> None:
     mc_payload[args.bio_concept] = bio_mc
     mc_payload[args.cyber_concept] = cyber_mc
 
+    # 4) Open questions mirrored from MC questions (same q, a=correct_answer)
+    open_payload = _read_json(OPEN_QA_PATH)
+    open_payload[args.bio_concept] = _mc_to_open_payload(bio_mc)
+    open_payload[args.cyber_concept] = _mc_to_open_payload(cyber_mc)
+
+    # 5) Relearning paragraphs from forget corpora (disjoint from concept sentences)
+    bio_relearn = _select_disjoint_subset(
+        bio_forget,
+        bio_subset,
+        args.bio_relearn_paragraphs,
+        args.seed + 10,
+    )
+    cyber_relearn = _select_disjoint_subset(
+        cyber_forget,
+        cyber_subset,
+        args.cyber_relearn_paragraphs,
+        args.seed + 11,
+    )
+
+    relearn_payload = _read_json(RELEARN_PATH)
+    relearn_payload[args.bio_concept] = {"RelearnParagraphs": bio_relearn}
+    relearn_payload[args.cyber_concept] = {"RelearnParagraphs": cyber_relearn}
+
     def _mc_summary(name: str, payload: Dict[str, List[Dict[str, Any]]]) -> str:
         return (f"{name}: QA_train={len(payload['QA_train'])}, "
                 f"QA_test={len(payload['QA_test'])}, "
@@ -276,7 +342,11 @@ def main() -> None:
     print(f"  mc_questions ({split_size} per split):")
     print(f"    {_mc_summary(args.bio_concept, bio_mc)}")
     print(f"    {_mc_summary(args.cyber_concept, cyber_mc)}")
-    print("  open_questions.json: unchanged")
+    print("  open_questions (mirrored from mc_questions):")
+    print(f"    {_mc_summary(args.bio_concept, open_payload[args.bio_concept])}")
+    print(f"    {_mc_summary(args.cyber_concept, open_payload[args.cyber_concept])}")
+    print(f"  relearn_paragraphs: {args.bio_concept}={len(bio_relearn)}, "
+          f"{args.cyber_concept}={len(cyber_relearn)}")
 
     if args.dry_run:
         print("[dry-run] no files written.")
@@ -286,10 +356,14 @@ def main() -> None:
         _backup(COHER_PATH)
         _backup(CONCEPT_SENT_PATH)
         _backup(MC_QA_PATH)
+        _backup(OPEN_QA_PATH)
+        _backup(RELEARN_PATH)
 
     _write_json(COHER_PATH, coher)
     _write_json(CONCEPT_SENT_PATH, concept_out)
     _write_json(MC_QA_PATH, mc_payload)
+    _write_json(OPEN_QA_PATH, open_payload)
+    _write_json(RELEARN_PATH, relearn_payload)
     print("[done] wrote updated data files.")
 
 

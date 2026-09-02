@@ -1,10 +1,10 @@
-# RMU (Representation Misdirection Unlearning) on Gemma-2-2b-it (no EMBER embedding step).
+# RMU on Gemma — full 144-cell grid for WMDP concepts (no EMBER step).
 #
-# Each HP cell reloads the model from disk; requires a GPU with >=24 GB VRAM.
+# Prereqs: WMDP data in data/ (scripts/prepare_wmdp_concepts_for_ember.py --apply).
 #
 # Usage:
-#   python -m ember.run_erasure --config configs/rmu_gemma.yaml \
-#       --train-eval mc --concepts "Harry Potter"
+#   python -m ember.run_erasure --config configs/wmdp_configs/rmu_gemma.yaml \
+#       --concepts wmdp-bio --train-eval mc --skip-llm-judge
 
 method: rmu
 model_name: google/gemma-2-2b-it
@@ -30,10 +30,13 @@ rmu:
 
 eval:
   alpaca: false
+  skip_llm_judge: false
   min_mmlu: 0.7
   max_qa_acc: 0.6
 
 relearning:
   enabled: true
-  max_paragraphs: 100
-  csv_path: data/relearn_paragraphs.json
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints

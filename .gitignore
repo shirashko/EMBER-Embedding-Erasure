@@ -13,7 +13,7 @@ build/
 
 # Model / feature outputs (large, user-generated)
 mf_outputs*/
-unlearned_checkpoints/
+unlearned_checkpoints*/
 results/
 *.log
 

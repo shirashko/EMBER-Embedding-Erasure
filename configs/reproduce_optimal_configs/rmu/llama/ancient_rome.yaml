@@ -32,7 +32,7 @@ rmu:
     layer_id: 7
     layer_ids: 5,6,7
 eval:
-  alpaca: true
+  alpaca: false
   min_mmlu: 0.7
   max_qa_acc: 0.6
   alpaca_batch_size: 75

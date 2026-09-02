@@ -23,14 +23,14 @@ crisp:
   lr_grid: [5.0e-5, 1.0e-4, 5.0e-4]
   batch_size: 16
   num_epochs: 2
-  lora_batch_size: 8
+  lora_batch_size: 4
   beta: 0.99
   gamma: 0.01
   lora_rank: 4
   sae_cache: llama_sae_cache
 
 eval:
-  alpaca: true
+  alpaca: false
   min_mmlu: 0.7
   max_qa_acc: 0.6
   alpaca_batch_size: 75
@@ -39,3 +39,7 @@ relearning:
   enabled: true
   max_paragraphs: 100
   csv_path: data/relearn_paragraphs.json
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints

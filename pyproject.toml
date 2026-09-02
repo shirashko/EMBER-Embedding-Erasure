@@ -29,7 +29,7 @@ dependencies = [
     "bitsandbytes==0.49.2",
     "dataclasses-json==0.6.7",
     "natsort==8.4.0",
-    "google-generativeai==0.8.5",
+    "google-genai>=1.0.0",
     "python-dotenv==1.0.1",
 ]
 

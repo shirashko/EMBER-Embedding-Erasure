@@ -1,8 +1,12 @@
-# CRISP (SAE + LoRA unlearning) on Gemma-2-2b-it (no EMBER embedding step).
+# CRISP on Gemma — full 144-cell grid for WMDP concepts (no EMBER step).
+#
+# Prereqs:
+#   - WMDP data in data/ (scripts/prepare_wmdp_concepts_for_ember.py --apply)
+#   - Gemma SAE weights under external/CRISP/crisp/gemma_sae_cache/
 #
 # Usage:
-#   python -m ember.run_erasure --config configs/crisp_gemma.yaml \
-#       --train-eval mc --concepts "Harry Potter"
+#   python -m ember.run_erasure --config configs/wmdp_configs/crisp_gemma.yaml \
+#       --concepts wmdp-bio --train-eval mc --skip-llm-judge
 
 method: crisp
 model_name: google/gemma-2-2b-it
@@ -23,7 +27,7 @@ crisp:
   lr_grid: [5.0e-5, 1.0e-4, 5.0e-4]
   batch_size: 16
   num_epochs: 2
-  lora_batch_size: 16
+  lora_batch_size: 4
   beta: 0.99
   gamma: 0.01
   lora_rank: 4
@@ -31,10 +35,13 @@ crisp:
 
 eval:
   alpaca: false
+  skip_llm_judge: false
   min_mmlu: 0.7
   max_qa_acc: 0.6
 
 relearning:
   enabled: true
-  max_paragraphs: 100
-  csv_path: data/relearn_paragraphs.json
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints

@@ -22,6 +22,7 @@ The single CLI entry-point (:func:`parse_args`) returns a fully-resolved
 from __future__ import annotations
 
 import argparse
+import os
 from dataclasses import dataclass, field, fields, is_dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -34,6 +35,27 @@ METHODS = ("snmf", "rmu", "crisp", "ember", "pisces")
 TRAIN_EVAL_MODES = ("mc", "open")
 
 _EMBER_DELTAS = [0.1, 0.5, 1.0, 5.0, 10.0, 50.0, 100.0, 200.0, 500.0, 1000.0]
+
+
+def _gemini_api_key_configured() -> bool:
+    """True when a Gemini/Vertex express API key is present in the environment."""
+    return bool(
+        os.getenv("GOOGLE_API_KEY")
+        or os.getenv("GEMINI_API_KEY")
+        or os.getenv("GEMINI_API_TOKEN")
+    )
+
+
+def _require_gemini_for_open_eval(train_eval: str) -> None:
+    """Fail fast when open-QA scoring is requested without a Gemini API key."""
+    if train_eval != "open":
+        return
+    if not _gemini_api_key_configured():
+        raise ValueError(
+            "train_eval='open' requires a Gemini API key (GOOGLE_API_KEY, "
+            "GEMINI_API_KEY, or GEMINI_API_TOKEN). Open-QA scoring cannot "
+            "fall back to MC mode."
+        )
 
 
 # ========================================================================== #
@@ -122,10 +144,11 @@ class PISCESGridConfig:
 
 @dataclass
 class EvalConfig:
-    alpaca: bool = True
+    alpaca: bool = False
     min_mmlu: float = 0.7
     max_qa_acc: float = 0.6
     alpaca_batch_size: Optional[int] = None
+    skip_llm_judge: bool = False
 
 
 @dataclass
@@ -186,6 +209,13 @@ class RunConfig:
         if self.train_eval not in TRAIN_EVAL_MODES:
             raise ValueError(f"Unknown train_eval {self.train_eval!r}; "
                              f"expected one of {TRAIN_EVAL_MODES}")
+        if self.train_eval == "open" and self.eval.skip_llm_judge:
+            raise ValueError(
+                "train_eval='open' requires Gemini LLM judging for open-QA "
+                "scoring; cannot combine with eval.skip_llm_judge=true "
+                "(or --skip-llm-judge)."
+            )
+        _require_gemini_for_open_eval(self.train_eval)
         if not self.concepts:
             raise ValueError("RunConfig.concepts is empty (pass --concepts on CLI)")
         if self.rank <= 0:
@@ -297,6 +327,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--features-source", choices=["hf", "local"], default=None,
                    help="Where to get features: 'hf' downloads them from the "
                         "ClSu/ember-features dataset, 'local' reads mf_outputs/ as-is.")
+    p.add_argument("--skip-llm-judge", action="store_true", default=False,
+                   help="Skip Gemini calls for Alpaca and open-QA baselines/eval.")
+    p.add_argument("--checkpoint-root", type=str, default=None,
+                   help="Override checkpoint.root from the YAML config.")
     return p
 
 
@@ -314,6 +348,10 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
         cfg.rank = args.rank
     if args.features_source is not None:
         cfg.features_source = args.features_source
+    if args.skip_llm_judge:
+        cfg.eval.skip_llm_judge = True
+    if args.checkpoint_root is not None:
+        cfg.checkpoint.root = args.checkpoint_root
     cfg.validate()
     return cfg
 

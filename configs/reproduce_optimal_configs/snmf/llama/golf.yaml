@@ -32,7 +32,7 @@ snmf:
   - - 0
     - 10
 eval:
-  alpaca: true
+  alpaca: false
   min_mmlu: 0.7
   max_qa_acc: 0.6
   alpaca_batch_size: 75
