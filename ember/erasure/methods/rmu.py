@@ -25,6 +25,7 @@ import torch
 from ember.erasure import embed_edit, io, log
 from ember.erasure.config import RunConfig
 from ember.erasure.methods.base import Method, register
+from ember.erasure.hf_layers import decoder_layers, rmu_module_str
 from ember.erasure.model_loader import load_hf_model
 from ember.local_datasets import ConceptDataset, resolve_neutral_path
 
@@ -45,11 +46,67 @@ LLAMA_UPDATE_SETTINGS: List[UpdateSetting] = [
     ("S2_lid9_L789",    9,  [7, 8, 9]),
     ("S3_lid11_L91011", 11, [9, 10, 11]),
 ]
-FIXED_PARAM_IDS: List[int] = [6]
+
+QWEN_UPDATE_SETTINGS: List[UpdateSetting] = [
+    # UPDATE BAND 1: Layer 5: DeltaNet, Layer 6: DeltaNet, Layer 7: Attention (the steering layer where the loss is computed).
+    # Architecture Mix: Disrupts 2 linear layers before evaluating on an attention layer.
+    ("S1_lid7_L567",     7,  [5, 6, 7]),
+
+    # UPDATE BAND 2: Layer 7: Attention, Layer 8: DeltaNet, Layer 9: DeltaNet (the steering layer where the loss is computed)
+    # Architecture Mix: Modifies an attention layer and carries the noise into 2 linear layers.
+    ("S2_lid9_L789",     9,  [7, 8, 9]),
+
+    # UPDATE BAND 3: Layer 9: DeltaNet, Layer 10: DeltaNet, Layer 11: Attention (the steering layer where the loss is computed)
+    # Architecture Mix: Identical structure to S1 (disrupts 2 linear layers before evaluating on an attention layer).
+    ("S3_lid11_L91011", 11, [9, 10, 11]),
+]
+
+
+def _model_family(model_name: str) -> str:
+    name = model_name.lower()
+    if "qwen" in name:
+        return "qwen"
+    if "llama" in name:
+        return "llama"
+    return "gemma"
+
+
+def get_down_proj_param_idx(layer: torch.nn.Module) -> int:
+    """Index of ``mlp.down_proj.weight`` in ``layer.parameters()``.
+
+    WMDP's ``get_params`` selects by this integer. Resolving by name keeps
+    per-architecture offsets correct without hardcoding.
+    """
+    for idx, (param_name, _) in enumerate(layer.named_parameters()):
+        if param_name == "mlp.down_proj.weight" or param_name.endswith("mlp.down_proj.weight"):
+            return idx
+    names = [n for n, _ in layer.named_parameters()]
+    raise AttributeError(
+        "Could not identify 'mlp.down_proj.weight' in layer parameters. "
+        f"Have: {names}"
+    )
+
+
+def _resolve_down_proj_param_ids(hf_model: Any) -> List[int]:
+    sample_layer = decoder_layers(hf_model)[0]
+    idx = get_down_proj_param_idx(sample_layer)
+    names = [n for n, _ in sample_layer.named_parameters()]
+    resolved_name = names[idx]
+    if "mlp.down_proj.weight" not in resolved_name:
+        raise AssertionError(
+            f"RMU param index {idx} is {resolved_name!r}, expected mlp.down_proj.weight"
+        )
+    log.info("RMU: updating %s (parameters() index %d)", resolved_name, idx)
+    return [idx]
 
 
 def _allowed_update_settings(model_name: str) -> List[UpdateSetting]:
-    return LLAMA_UPDATE_SETTINGS if "llama" in model_name.lower() else GEMMA_UPDATE_SETTINGS
+    family = _model_family(model_name)
+    if family == "qwen":
+        return QWEN_UPDATE_SETTINGS
+    if family == "llama":
+        return LLAMA_UPDATE_SETTINGS
+    return GEMMA_UPDATE_SETTINGS
 
 
 def _setting_key(setting: UpdateSetting) -> Tuple[str, int, Tuple[int, ...]]:
@@ -94,15 +151,16 @@ def _grids_and_settings(common: RunConfig
                         ) -> Tuple[List[float], List[float], List[float],
                                    List[UpdateSetting]]:
     cfg = common.rmu
-    is_llama = "llama" in common.model_name.lower()
-    if is_llama:
-        lrs = cfg.lr_grid or [1e-5, 1e-4, 3e-4]
-        alphas = cfg.alpha_grid or [30.0, 50.0, 100.0, 300.0]
-        steerings = cfg.steering_grid or [30.0, 100.0, 300.0, 1000.0]
+    family = _model_family(common.model_name)
+    lrs = cfg.lr_grid or [1e-5, 1e-4, 3e-4]
+    steerings = cfg.steering_grid or [30.0, 100.0, 300.0, 1000.0]
+    if cfg.alpha_grid is not None:
+        alphas = cfg.alpha_grid
+    elif family == "gemma":
+        alphas = [10.0, 30.0, 50.0, 100.0]
     else:
-        lrs = cfg.lr_grid or [1e-5, 1e-4, 3e-4]
-        alphas = cfg.alpha_grid or [10.0, 30.0, 50.0, 100.0]
-        steerings = cfg.steering_grid or [30.0, 100.0, 300.0, 1000.0]
+        # Llama, Qwen
+        alphas = [30.0, 50.0, 100.0, 300.0]
     settings = resolve_update_settings(cfg, common.model_name)
     return lrs, alphas, steerings, settings
 
@@ -168,7 +226,6 @@ class RMUMethod(Method):
                             "setting_name": setting_name,
                             "layer_id": int(layer_id),
                             "layer_ids": ",".join(map(str, layer_ids)),
-                            "param_ids": ",".join(map(str, FIXED_PARAM_IDS)),
                         }
 
     def hp_key_columns(self) -> List[str]:
@@ -256,10 +313,12 @@ class RMUMethod(Method):
         )
 
         layer_ids = [int(x) for x in str(hp["layer_ids"]).split(",")]
+        param_ids = _resolve_down_proj_param_ids(self._working_model)
+        info["param_ids"] = ",".join(map(str, param_ids))
         run_args = argparse.Namespace(
             layer_id=int(hp["layer_id"]),
             layer_ids=layer_ids,
-            param_ids=FIXED_PARAM_IDS,
+            param_ids=param_ids,
             alpha=[float(hp["alpha"])],
             steering_coeff_list=[float(hp["steering"])],
             lr=float(hp["lr"]),
@@ -268,7 +327,7 @@ class RMUMethod(Method):
             steering_coeffs_str=str(hp["steering"]),
             setting_name=str(hp["setting_name"]),
             model_name_or_path=common.model_name,
-            module_str="{model_name}.model.layers[{layer_id}]",
+            module_str=rmu_module_str(self._working_model),
             seed=int(common.seed),
             verbose=False,
             output_dir=None,
