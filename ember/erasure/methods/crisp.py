@@ -31,7 +31,7 @@ import torch
 from ember.erasure import embed_edit, io, log
 from ember.erasure.config import RunConfig
 from ember.erasure.methods.base import Method, register
-from ember.local_datasets import ConceptDataset
+from ember.local_datasets import ConceptDataset, resolve_neutral_path
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 sys.path.append(str(ROOT_DIR))
@@ -143,8 +143,17 @@ def _resolve_sae_cache(model_name: str, configured: str) -> str:
     return configured
 
 
-def _build_crisp_data(concept_name: str, max_len: int, seed: int):
-    data = ConceptDataset(concept_name).as_forget_retain(seed=seed)
+def _build_crisp_data(
+        concept_name: str,
+        max_len: int,
+        seed: int,
+        *,
+        neutral_path: str,
+):
+    data = ConceptDataset(
+        concept_name,
+        neutral_path=resolve_neutral_path(neutral_path),
+    ).as_forget_retain(seed=seed)
     forget, retain = data["forget"], data["retain"]
     if max_len and max_len > 0:
         forget = [s for s in forget if len(s) <= max_len]
@@ -204,7 +213,10 @@ class CRISPMethod(Method):
             self._saes_downloaded = True
 
         max_len = common.crisp.max_len if hasattr(common.crisp, "max_len") else 2000
-        self._forget, self._retain = _build_crisp_data(concept, max_len, int(common.seed))
+        self._forget, self._retain = _build_crisp_data(
+            concept, max_len, int(common.seed), neutral_path=common.neutral_path,
+        )
+        log.info("CRISP: retain corpus -> %s", resolve_neutral_path(common.neutral_path))
         self._coher = _load_coherency_prompts(concept)
 
     def on_concept_end(self, hf_model: Any, concept: str,
