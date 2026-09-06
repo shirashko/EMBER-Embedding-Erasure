@@ -73,6 +73,8 @@ run_one() {
     echo " Features source: $features_source"
     echo " Skip LLM judge:  1"
     echo " Checkpoint root: $CHECKPOINT_ROOT"
+    echo " Overwrite:       ${OVERWRITE:-0}"
+    echo " Final test only: ${FINAL_TEST_ONLY:-0}"
     echo " CUDA alloc conf: $PYTORCH_CUDA_ALLOC_CONF"
     echo "================================================================"
 
@@ -80,6 +82,9 @@ run_one() {
                       --checkpoint-root "$CHECKPOINT_ROOT")
     if [[ "${OVERWRITE:-0}" == "1" ]]; then
         extra_args+=(--overwrite)
+    fi
+    if [[ "${FINAL_TEST_ONLY:-0}" == "1" ]]; then
+        extra_args+=(--final-test-only)
     fi
 
     python -m ember.run_erasure \

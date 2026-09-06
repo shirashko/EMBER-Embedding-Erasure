@@ -1,0 +1,44 @@
+# Reproduce optimal unlearning: Gemma / RMU / Gambling
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/reproduce_optimal_configs/rmu/gemma/gambling.yaml \
+#       --concepts "Gambling" --train-eval mc \
+#       --features-source local
+
+method: rmu
+model_name: google/gemma-2-2b-it
+rank: 100
+seed: 42
+topk: 1
+run_tests_after_train: true
+features_source: local
+selection:
+  ratio_thresh: 2.0
+ember_step:
+  enabled: false
+rmu:
+  lr_grid:
+  - 0.0003
+  alpha_grid:
+  - 50.0
+  steering_grid:
+  - 1000.0
+  batch_size: 16
+  max_num_batches: 150
+  min_len: 50
+  max_len: 2000
+  update_settings:
+  - setting_name: S2_lid8_L678
+    layer_id: 8
+    layer_ids: 6,7,8
+eval:
+  alpaca: false
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints

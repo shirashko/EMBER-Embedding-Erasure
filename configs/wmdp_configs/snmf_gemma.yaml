@@ -45,3 +45,5 @@ relearning:
 checkpoint:
   enabled: true
   root: unlearned_checkpoints
+
+neutral_path: data/cyber_neutral_sentences.json

@@ -2,10 +2,10 @@ configs/wmdp_configs/rmu_gemma.yaml	wmdp-bio	mc	local
 configs/wmdp_configs/rmu_gemma.yaml	wmdp-cyber	mc	local
 configs/wmdp_configs/crisp_gemma.yaml	wmdp-bio	mc	local
 configs/wmdp_configs/crisp_gemma.yaml	wmdp-cyber	mc	local
-configs/rmu_llama.yaml	wmdp-bio	mc	local
-configs/rmu_llama.yaml	wmdp-cyber	mc	local
-configs/crisp_llama.yaml	wmdp-bio	mc	local
-configs/crisp_llama.yaml	wmdp-cyber	mc	local
+configs/wmdp_configs/rmu_llama.yaml	wmdp-bio	mc	local
+configs/wmdp_configs/rmu_llama.yaml	wmdp-cyber	mc	local
+configs/wmdp_configs/crisp_llama.yaml	wmdp-bio	mc	local
+configs/wmdp_configs/crisp_llama.yaml	wmdp-cyber	mc	local
 configs/wmdp_configs/snmf_gemma.yaml	wmdp-bio	mc	local
 configs/wmdp_configs/snmf_gemma.yaml	wmdp-cyber	mc	local
 configs/wmdp_configs/snmf_llama.yaml	wmdp-bio	mc	local

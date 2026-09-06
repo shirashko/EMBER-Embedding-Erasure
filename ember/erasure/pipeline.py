@@ -99,13 +99,16 @@ def run(cfg: RunConfig) -> None:
     baselines = _compute_all_baselines(cfg, hf_model, tokenizer, alpaca_bs)
     best_embed_map = _resolve_ember_step(cfg, hf_model, tokenizer, baselines, alpaca_bs)
 
-    with log.stage("grid"):
-        _run_method_grid(method, cfg, hf_model, tokenizer,
-                         baselines, best_embed_map, alpaca_bs)
+    if not cfg.final_test_only:
+        with log.stage("grid"):
+            _run_method_grid(method, cfg, hf_model, tokenizer,
+                             baselines, best_embed_map, alpaca_bs)
 
-    with log.stage("validate"):
-        _run_validate_topk(method, cfg, hf_model, tokenizer,
-                           baselines, best_embed_map, alpaca_bs)
+        with log.stage("validate"):
+            _run_validate_topk(method, cfg, hf_model, tokenizer,
+                               baselines, best_embed_map, alpaca_bs)
+    else:
+        log.info("final_test_only=true: skipping grid and validate stages")
 
     if cfg.run_tests_after_train:
         with log.stage("final_test"):
@@ -445,27 +448,30 @@ def _pick_best_hp_for_test(
         valid_csv: Optional[Path] = None,
 ) -> Optional[Dict[str, Any]]:
     if valid_csv is not None and valid_csv.exists():
-        import pandas as pd
         vdf = io.read_csv_safe(valid_csv)
         if not vdf.empty:
-            primary = None
-            if "harmonic_alpaca" in vdf.columns:
-                harm_alp = pd.to_numeric(vdf["harmonic_alpaca"], errors="coerce")
-                if harm_alp.notna().any():
-                    vdf = vdf.copy()
-                    vdf["harmonic_alpaca"] = harm_alp
-                    primary = "harmonic_alpaca"
-                else:
-                    log.info("top_hps_valid has empty harmonic_alpaca; falling back to harmonic")
-            if primary is None and "harmonic" in vdf.columns:
-                vdf = vdf.copy()
-                vdf["harmonic"] = pd.to_numeric(vdf["harmonic"], errors="coerce")
-                if vdf["harmonic"].notna().any():
-                    primary = "harmonic"
+            primary = io.resolve_hp_rank_metric(vdf)
             if primary is not None:
-                top = io.topk_per_concept(vdf, k=1, primary=primary)
-                if not top.empty:
-                    return top.iloc[0].to_dict()
+                viable = io.filter_viable_generation_rows(vdf)
+                excluded = len(vdf) - len(viable)
+                if excluded:
+                    log.info(
+                        "generation guardrail: excluded %d/%d validate rows with "
+                        "qa_invalid or mmlu_invalid > %.2f",
+                        excluded, len(vdf), io.MAX_HP_INVALID_RATE,
+                    )
+                if viable.empty:
+                    log.warning(
+                        "no validate HP rows pass generation guardrail "
+                        "(qa_invalid <= %.2f, mmlu_invalid <= %.2f)",
+                        io.MAX_HP_INVALID_RATE, io.MAX_HP_INVALID_RATE,
+                    )
+                else:
+                    top = io.pick_best_viable_hp_row(
+                        vdf, k=1, primary=primary,
+                    )
+                    if not top.empty:
+                        return top.iloc[0].to_dict()
     df = io.read_csv_safe(hp_csv)
     if df.empty:
         return None

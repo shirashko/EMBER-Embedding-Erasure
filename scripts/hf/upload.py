@@ -174,7 +174,10 @@ def make_existing_public(api: HfApi, username: str, root_dir: str, dry_run: bool
             made_public += 1
             continue
 
-        api.update_repo_visibility(repo_id=repo_id, private=False, repo_type="model")
+        if hasattr(api, "update_repo_settings"):
+            api.update_repo_settings(repo_id=repo_id, private=False, repo_type="model")
+        else:
+            api.update_repo_visibility(repo_id=repo_id, private=False, repo_type="model")
         made_public += 1
         logger.info(f"Made public: {repo_id}")
 

@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from ember.erasure.io import ROOT_DIR
+from ember.local_datasets import resolve_neutral_path
 
 METHODS = ("snmf", "rmu", "crisp", "ember", "pisces")
 TRAIN_EVAL_MODES = ("mc", "open")
@@ -183,8 +184,10 @@ class RunConfig:
     seed: int = 42
     topk: int = 20
     overwrite: bool = False
+    final_test_only: bool = False
     run_tests_after_train: bool = True
     features_source: str = "hf"  # "hf": download features from the HF dataset; "local": read mf_outputs/ as-is
+    neutral_path: str = "data/neutral_sentences.json"
 
     ember_step: EMBERStepConfig = field(default_factory=EMBERStepConfig)
     selection: SelectionConfig = field(default_factory=SelectionConfig)
@@ -218,6 +221,9 @@ class RunConfig:
         _require_gemini_for_open_eval(self.train_eval)
         if not self.concepts:
             raise ValueError("RunConfig.concepts is empty (pass --concepts on CLI)")
+        neutral = resolve_neutral_path(self.neutral_path)
+        if not neutral.is_file():
+            raise ValueError(f"neutral_path not found: {neutral}")
         if self.rank <= 0:
             raise ValueError(f"rank must be positive, got {self.rank}")
         if self.features_source not in ("hf", "local"):
@@ -322,6 +328,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Override the config's seed.")
     p.add_argument("--overwrite", action="store_true", default=False,
                    help="Re-run cells already present in the HP CSV.")
+    p.add_argument("--final-test-only", action="store_true", default=False,
+                   help="Skip grid and validate; re-pick best HP and run final test.")
     p.add_argument("--rank", type=int, default=None,
                    help="Override the config's rank.")
     p.add_argument("--features-source", choices=["hf", "local"], default=None,
@@ -331,6 +339,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Skip Gemini calls for Alpaca and open-QA baselines/eval.")
     p.add_argument("--checkpoint-root", type=str, default=None,
                    help="Override checkpoint.root from the YAML config.")
+    p.add_argument("--neutral-path", type=str, default=None,
+                   help="Retain corpus JSON (default: data/neutral_sentences.json).")
     return p
 
 
@@ -344,6 +354,8 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
         cfg.seed = args.seed
     if args.overwrite:
         cfg.overwrite = True
+    if args.final_test_only:
+        cfg.final_test_only = True
     if args.rank is not None:
         cfg.rank = args.rank
     if args.features_source is not None:
@@ -352,6 +364,8 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
         cfg.eval.skip_llm_judge = True
     if args.checkpoint_root is not None:
         cfg.checkpoint.root = args.checkpoint_root
+    if args.neutral_path is not None:
+        cfg.neutral_path = args.neutral_path
     cfg.validate()
     return cfg
 

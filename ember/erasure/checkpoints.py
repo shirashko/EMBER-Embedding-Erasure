@@ -224,6 +224,14 @@ def _pick_test_row(test_rows: Dict[str, List[Dict[str, Any]]], train_eval: str) 
     return _first_row(test_rows.get(f"final_test_{train_eval}", []))
 
 
+def _baseline_accuracy(entry: Dict[str, Any]) -> Optional[Any]:
+    """Return generation or open baseline accuracy, preferring a non-null value."""
+    acc = entry.get("accuracy_generation")
+    if acc is None:
+        acc = entry.get("accuracy")
+    return acc
+
+
 def _baseline_for_metric(
         baselines: Dict[str, Any],
         metric: str,
@@ -243,7 +251,7 @@ def _baseline_for_metric(
     if metric.startswith("qa_"):
         entry = (((baselines.get("qa", {}) or {}).get(f"qa_{split}_{eval_mode}", {}) or {}))
         if metric == "qa_acc":
-            return entry.get("accuracy_generation", entry.get("accuracy"))
+            return _baseline_accuracy(entry)
         if metric == "qa_invalid":
             return entry.get("invalid_rate_generation")
         if metric == "qa_frac":
@@ -253,7 +261,7 @@ def _baseline_for_metric(
         entry = (((baselines.get("simdom", {}) or {})
                   .get(f"simdom_{split}_{eval_mode}", {}) or {}))
         if metric == "simdom_acc":
-            return entry.get("accuracy_generation", entry.get("accuracy"))
+            return _baseline_accuracy(entry)
         if metric == "simdom_invalid":
             return entry.get("invalid_rate_generation")
         if metric == "simdom_frac":
