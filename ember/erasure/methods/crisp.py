@@ -30,6 +30,7 @@ import torch
 
 from ember.erasure import embed_edit, io, log
 from ember.erasure.config import RunConfig
+from ember.erasure.hf_layers import is_qwen
 from ember.erasure.methods.base import Method, register
 from ember.local_datasets import ConceptDataset, resolve_neutral_path
 
@@ -52,10 +53,22 @@ LLAMA_LAYER_RANGES: List[Tuple[int, int, int]] = [
     (5, 29, 2),
     (4, 28, 2),
 ]
+# Qwen3.5-2B: 24 layers. Same mid-depth bands as Gemma, capped at layer 23.
+QWEN_LAYER_RANGES: List[Tuple[int, int, int]] = [
+    (4, 14, 2),
+    (5, 15, 2),
+    (4, 20, 2),
+    (5, 21, 2),
+]
 
 
 def _layer_ranges(model_name: str) -> List[Tuple[int, int, int]]:
-    return LLAMA_LAYER_RANGES if "llama" in model_name.lower() else GEMMA_LAYER_RANGES
+    name = model_name.lower()
+    if "qwen" in name:
+        return QWEN_LAYER_RANGES
+    if "llama" in name:
+        return LLAMA_LAYER_RANGES
+    return GEMMA_LAYER_RANGES
 
 
 def validate_layer_ranges(
@@ -107,7 +120,7 @@ def _load_coherency_prompts(concept_name: str) -> List[str]:
 def _download_saes_once(model_name: str, layer_ranges: List[Tuple[int, int, int]],
                         sae_cache: str) -> None:
     """Fetch any missing SAE checkpoints to ``external/CRISP/crisp/<sae_cache>/``."""
-    from external.CRISP.crisp.sae import JumpReLUSAE, TopkSae  # type: ignore
+    from external.CRISP.crisp.sae import JumpReLUSAE, QwenScopeTopkSae, TopkSae  # type: ignore
 
     all_layers = sorted({L for (lo, hi, st) in layer_ranges
                          for L in range(lo, hi + 1, st)})
@@ -115,7 +128,7 @@ def _download_saes_once(model_name: str, layer_ranges: List[Tuple[int, int, int]
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     # hf_hub_download writes to HF cache; use a writable dir if the shared
-    # hub cache (e.g. /home/morg/dataset/models) is read-only on compute nodes.
+    # hub cache (HUGGINGFACE_HUB_CACHE) is read-only on compute nodes.
     hub_cache = os.environ.get("HF_HOME") or os.environ.get("HUGGINGFACE_HUB_CACHE")
     if hub_cache:
         hub_path = Path(hub_cache)
@@ -126,21 +139,76 @@ def _download_saes_once(model_name: str, layer_ranges: List[Tuple[int, int, int]
             os.environ["HUGGINGFACE_HUB_CACHE"] = str(writable / "hub")
 
     is_llama = "llama" in model_name.lower()
+    is_qwen = "qwen" in model_name.lower()
     for layer in all_layers:
         layer_path = cache_dir / f"layer_{layer}"
         if _layer_cache_valid(layer_path):
             continue
         log.info("CRISP: downloading missing SAE for layer %d", layer)
-        if is_llama:
+        if is_qwen:
+            QwenScopeTopkSae.download_and_save(layer=layer, save_path=cache_dir)
+        elif is_llama:
             TopkSae.download_and_save(layer=layer, save_path=cache_dir)
         else:
             JumpReLUSAE.download_and_save(layer=layer, save_path=cache_dir)
 
 
 def _resolve_sae_cache(model_name: str, configured: str) -> str:
-    if "llama" in model_name.lower() and configured == "gemma_sae_cache":
+    name = model_name.lower()
+    if "qwen" in name:
+        return "qwen_sae_cache"
+    if "llama" in name and configured == "gemma_sae_cache":
         return "llama_sae_cache"
     return configured
+
+
+def _dump_crisp_features(
+        crisp: Any,
+        *,
+        model_name: str,
+        concept: str,
+        k_features: int,
+        layer_range: Tuple[int, int, int],
+        layers: List[int],
+) -> Path:
+    """Write the salient SAE indices CRISP will unlearn for this concept/range."""
+    lo, hi, _step = layer_range
+    model_dir = model_name.replace("/", "_")
+    concept_slug = concept.replace("/", "_").replace(" ", "_")
+    out_dir = ROOT_DIR / "experiments" / "crisp_features" / model_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"{concept_slug}_layers_{lo}_to_{hi}.json"
+
+    layer_payload: Dict[str, List[Dict[str, Any]]] = {}
+    for layer in layers:
+        layer_feats = crisp.features_dict.get(layer)
+        if layer_feats is None:
+            continue
+        selected = layer_feats.topk_filtered(k_features, crisp.config.model_name)
+        layer_payload[str(layer)] = [
+            {
+                "index": int(feat.index),
+                "freq_diff": None if feat.freq_diff is None else int(feat.freq_diff),
+                "target_acts_relative": (
+                    None if feat.target_acts_relative is None
+                    else float(feat.target_acts_relative)
+                ),
+            }
+            for feat in selected
+        ]
+
+    payload = {
+        "model_name": model_name,
+        "concept": concept,
+        "k_features": int(k_features),
+        "layer_lo": int(lo),
+        "layer_hi": int(hi),
+        "layer_step": int(layer_range[2]),
+        "layers": layer_payload,
+    }
+    out_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    log.info("CRISP: wrote concept features -> %s", out_path)
+    return out_path
 
 
 def _build_crisp_data(
@@ -281,6 +349,14 @@ class CRISPMethod(Method):
                 text_target=self._forget, text_benign=self._retain,
                 data_config=None, batch_size=common.crisp.batch_size,
             )
+            _dump_crisp_features(
+                self._crisp,
+                model_name=common.model_name,
+                concept=concept,
+                k_features=max(int(k) for k in common.crisp.k_features_grid),
+                layer_range=layer_range,
+                layers=layers,
+            )
             self._concept_for_crisp = concept
             self._range_for_crisp = layer_range
         else:
@@ -305,6 +381,9 @@ class CRISPMethod(Method):
         )
         log.info("CRISP: unlearn_lora (k=%d alpha=%g lr=%g range=%s)",
                  hp["k_features"], hp["alpha"], hp["lr"], layer_range)
+        # Qwen3.5 DeltaNet state must not be cached while LoRA backprop runs.
+        if is_qwen(common.model_name):
+            self._crisp.model.config.use_cache = False
         with torch.enable_grad():
             unlearn_lora(crisp=self._crisp,
                          text_target=self._forget,

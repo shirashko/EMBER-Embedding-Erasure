@@ -1,0 +1,56 @@
+# RMU on Qwen3.5-2B (no EMBER embedding step).
+#
+# 96-cell grid: 2 lr × 4 alpha × 4 steering × 3 layer presets.
+# Each cell reloads the model. One GPU job per concept (see
+# slurm/run_qwen_rmu.slurm).
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/rmu_qwen.yaml \
+#       --train-eval mc --concepts "Golf" --features-source local --skip-llm-judge
+
+method: rmu
+model_name: Qwen/Qwen3.5-2B
+rank: 100
+seed: 42
+topk: 15
+run_tests_after_train: true
+features_source: local
+
+selection:
+  ratio_thresh: 2.0
+
+ember_step:
+  enabled: false
+
+rmu:
+  lr_grid: [1.0e-4, 3.0e-4]
+  alpha_grid: [30.0, 50.0, 100.0, 300.0]
+  steering_grid: [30.0, 100.0, 300.0, 1000.0]
+  batch_size: 16
+  max_num_batches: 150
+  min_len: 50
+  max_len: 2000
+  update_settings:
+    - setting_name: S1_lid7_L567
+      layer_id: 7
+      layer_ids: 5,6,7
+    - setting_name: S2_lid9_L789
+      layer_id: 9
+      layer_ids: 7,8,9
+    - setting_name: S3_lid11_L91011
+      layer_id: 11
+      layer_ids: 9,10,11
+
+eval:
+  alpaca: false
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints

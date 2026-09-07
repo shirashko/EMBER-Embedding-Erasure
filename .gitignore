@@ -20,6 +20,7 @@ results/
 # CRISP SAE caches (downloaded automatically on first run)
 external/CRISP/crisp/gemma_sae_cache/
 external/CRISP/crisp/llama_sae_cache/
+external/CRISP/crisp/qwen_sae_cache/
 
 # Baseline caches (regenerated on first run)
 data/baselines/
@@ -44,3 +45,7 @@ slurm*/
 
 # WMDP prepared corpora (run scripts/prepare_wmdp_corpora.py)
 data/wmdp/*/
+
+tmp
+
+experiments/crisp_features/*/
