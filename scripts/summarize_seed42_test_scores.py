@@ -2,13 +2,18 @@
 """Print test specificity / efficacy / harmonic tables for seed-42 checkpoints.
 
 Reads ``unlearned_checkpoints/**/evaluation/evaluation_summary.json`` and shows
-one table per (model, method) for the requested concepts, plus mean and std
-across concepts in that group.
+one per-config table (model / method / concept) and a separate mean/std table
+across concepts in each (model, method) group.
+
+Gambling is appended for Gemma/Llama on pisces, crisp, rmu, and snmf, and for
+Qwen on snmf, rmu, and crisp. Republic of Ireland, wmdp-bio, and wmdp-cyber
+are appended for matching families/methods when a seed-42 checkpoint exists.
 
 Example::
 
     python scripts/summarize_seed42_test_scores.py
     python scripts/summarize_seed42_test_scores.py --out results/seed42_test_scores.csv
+    # also writes results/seed42_test_scores_summary.csv
 """
 
 from __future__ import annotations
@@ -30,6 +35,47 @@ DEFAULT_CONCEPTS = [
     "Culture of Greece",
     "Cannabis",
     "Baseball",
+]
+
+# Extra concepts appended after DEFAULT_CONCEPTS for matching (family, method).
+# ``only_if_present`` skips the row when that checkpoint is missing.
+EXTRA_CONCEPTS: List[Dict[str, Any]] = [
+    {
+        "name": "Gambling",
+        "methods_by_family": {
+            "google": frozenset({"pisces", "crisp", "rmu", "snmf"}),
+            "meta": frozenset({"pisces", "crisp", "rmu", "snmf"}),
+            "qwen": frozenset({"snmf", "rmu", "crisp"}),
+        },
+        "only_if_present": False,
+    },
+    {
+        "name": "Republic of Ireland",
+        "methods_by_family": {
+            "google": frozenset({"pisces", "crisp", "rmu", "snmf"}),
+            "meta": frozenset({"pisces", "crisp", "rmu", "snmf"}),
+            "qwen": frozenset({"snmf", "rmu", "crisp"}),
+        },
+        "only_if_present": True,
+    },
+    {
+        "name": "wmdp-bio",
+        "methods_by_family": {
+            "google": frozenset({"pisces", "crisp", "rmu", "snmf"}),
+            "meta": frozenset({"pisces", "crisp", "rmu", "snmf"}),
+            "qwen": frozenset({"pisces", "crisp", "rmu", "snmf"}),
+        },
+        "only_if_present": True,
+    },
+    {
+        "name": "wmdp-cyber",
+        "methods_by_family": {
+            "google": frozenset({"pisces", "crisp", "rmu", "snmf"}),
+            "meta": frozenset({"pisces", "crisp", "rmu", "snmf"}),
+            "qwen": frozenset({"pisces", "crisp", "rmu", "snmf"}),
+        },
+        "only_if_present": True,
+    },
 ]
 
 DEFAULT_MODEL_SUBSTRINGS = ("google", "meta", "Qwen3.5-2B")
@@ -61,7 +107,7 @@ def parse_args() -> argparse.Namespace:
         "--concepts",
         nargs="+",
         default=list(DEFAULT_CONCEPTS),
-        help="Concepts to include (order is used in tables).",
+        help="Concepts to include (order is used in tables). Extra concepts such as Gambling, Republic of Ireland, wmdp-bio, and wmdp-cyber are appended for allowed model/method pairs.",
     )
     p.add_argument(
         "--model-substrings",
@@ -73,7 +119,8 @@ def parse_args() -> argparse.Namespace:
         "--out",
         type=Path,
         default=None,
-        help="Optional CSV path for per-concept rows plus mean/std rows.",
+        help="Optional CSV path for per-config rows. Mean/std are written to "
+             "<stem>_summary.csv next to this file.",
     )
     return p.parse_args()
 
@@ -154,6 +201,35 @@ def _matches_model(model_name: str, substrings: Sequence[str]) -> bool:
     return any(s.casefold() in name for s in substrings)
 
 
+def _extra_by_key() -> Dict[str, Dict[str, Any]]:
+    return {_norm_concept(str(spec["name"])): spec for spec in EXTRA_CONCEPTS}
+
+
+def _allows_extra(spec: Dict[str, Any], family: str, method: str) -> bool:
+    methods_by_family = spec.get("methods_by_family") or {}
+    return method in methods_by_family.get(family, ())
+
+
+def _concepts_for_group(
+    base_concepts: Sequence[str],
+    family: str,
+    method: str,
+    present: Optional[Iterable[str]] = None,
+) -> List[str]:
+    extra_keys = set(_extra_by_key())
+    present_keys = {_norm_concept(c) for c in present} if present is not None else None
+    concepts = [c for c in base_concepts if _norm_concept(c) not in extra_keys]
+    for spec in EXTRA_CONCEPTS:
+        name = str(spec["name"])
+        if not _allows_extra(spec, family, method):
+            continue
+        if spec.get("only_if_present") and present_keys is not None:
+            if _norm_concept(name) not in present_keys:
+                continue
+        concepts.append(name)
+    return concepts
+
+
 def _load_summaries(checkpoints_root: Path) -> List[Dict[str, Any]]:
     root = checkpoints_root if checkpoints_root.is_absolute() else ROOT_DIR / checkpoints_root
     summaries: List[Dict[str, Any]] = []
@@ -175,7 +251,10 @@ def _extract_rows(
     concepts: Sequence[str],
     model_substrings: Sequence[str],
 ) -> List[Dict[str, Any]]:
+    extras = _extra_by_key()
     wanted = {_norm_concept(c): c for c in concepts}
+    for spec in EXTRA_CONCEPTS:
+        wanted.setdefault(_norm_concept(str(spec["name"])), str(spec["name"]))
     rows: List[Dict[str, Any]] = []
     for summary in summaries:
         if _to_float(summary.get("seed")) != float(seed):
@@ -187,12 +266,17 @@ def _extract_rows(
         concept_key = _norm_concept(concept_raw)
         if concept_key not in wanted:
             continue
+        family = _model_family(model)
+        method = _base_method(str(summary.get("method", "")))
+        extra_spec = extras.get(concept_key)
+        if extra_spec is not None and not _allows_extra(extra_spec, family, method):
+            continue
         test_row = _pick_test_row(summary)
         rows.append(
             {
                 "model": model,
-                "family": _model_family(model),
-                "method": _base_method(str(summary.get("method", ""))),
+                "family": family,
+                "method": method,
                 "concept": wanted[concept_key],
                 "train_eval": _resolve_train_eval(summary),
                 "specificity": _to_float(test_row.get("specificity")),
@@ -222,23 +306,43 @@ def _markdown_table(headers: Sequence[str], body: Sequence[Sequence[str]]) -> st
     return "\n".join(lines)
 
 
-def _print_group_tables(rows: List[Dict[str, Any]], concepts: Sequence[str]) -> List[Dict[str, Any]]:
-    export: List[Dict[str, Any]] = []
+SUMMARY_FIELDS = [
+    "model",
+    "method",
+    "n",
+    "specificity_mean",
+    "specificity_std",
+    "efficacy_mean",
+    "efficacy_std",
+    "harmonic_mean",
+    "harmonic_std",
+]
+
+
+def _print_score_tables(
+    rows: List[Dict[str, Any]], concepts: Sequence[str]
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    per_config: List[Dict[str, Any]] = []
+    summaries: List[Dict[str, Any]] = []
     groups: Dict[Tuple[str, str, str], List[Dict[str, Any]]] = {}
     for row in rows:
         groups.setdefault(_group_key(row), []).append(row)
 
+    per_body: List[List[str]] = []
+    summary_body: List[List[str]] = []
     for family, model, method in sorted(groups):
         by_concept = {r["concept"]: r for r in groups[(family, model, method)]}
-        body: List[List[str]] = []
+        group_concepts = _concepts_for_group(
+            concepts, family, method, present=by_concept
+        )
         metric_lists = {m: [] for m in METRICS}
-        for concept in concepts:
+        for concept in group_concepts:
             rec = by_concept.get(concept)
             if rec is None:
-                body.append([concept, "", "", ""])
+                per_body.append([model, method, concept, "", "", ""])
                 for m in METRICS:
                     metric_lists[m].append(None)
-                export.append(
+                per_config.append(
                     {
                         "model": model,
                         "method": method,
@@ -249,10 +353,10 @@ def _print_group_tables(rows: List[Dict[str, Any]], concepts: Sequence[str]) -> 
                     }
                 )
                 continue
-            body.append([concept] + [_fmt(rec[m]) for m in METRICS])
+            per_body.append([model, method, concept] + [_fmt(rec[m]) for m in METRICS])
             for m in METRICS:
                 metric_lists[m].append(rec[m])
-            export.append(
+            per_config.append(
                 {
                     "model": model,
                     "method": method,
@@ -263,39 +367,57 @@ def _print_group_tables(rows: List[Dict[str, Any]], concepts: Sequence[str]) -> 
                 }
             )
 
-        mean_cells = ["mean"]
-        std_cells = ["std"]
-        mean_export: Dict[str, str] = {
-            "model": model, "method": method, "concept": "mean",
+        n_present = sum(1 for c in group_concepts if c in by_concept)
+        summary: Dict[str, str] = {
+            "model": model,
+            "method": method,
+            "n": str(n_present),
         }
-        std_export: Dict[str, str] = {
-            "model": model, "method": method, "concept": "std",
-        }
+        summary_cells = [model, method, str(n_present)]
         for m in METRICS:
             mean, std = _mean_std(metric_lists[m])
-            mean_cells.append(_fmt(mean))
-            std_cells.append(_fmt(std))
-            mean_export[m] = _fmt(mean)
-            std_export[m] = _fmt(std)
-        body.extend([mean_cells, std_cells])
-        export.extend([mean_export, std_export])
+            summary[f"{m}_mean"] = _fmt(mean)
+            summary[f"{m}_std"] = _fmt(std)
+            summary_cells.extend([_fmt(mean), _fmt(std)])
+        summaries.append(summary)
+        summary_body.append(summary_cells)
 
-        n_present = sum(1 for c in concepts if c in by_concept)
-        print(f"## {model}  /  {method}  (n={n_present}/{len(concepts)})")
-        print()
-        print(_markdown_table(["concept", *METRICS], body))
-        print()
+    print("## Per-config test scores")
+    print()
+    print(_markdown_table(["model", "method", "concept", *METRICS], per_body))
+    print()
+    print("## Mean / std by model and method")
+    print()
+    print(
+        _markdown_table(
+            [
+                "model",
+                "method",
+                "n",
+                "specificity_mean",
+                "specificity_std",
+                "efficacy_mean",
+                "efficacy_std",
+                "harmonic_mean",
+                "harmonic_std",
+            ],
+            summary_body,
+        )
+    )
+    print()
+    return per_config, summaries
 
-    return export
 
-
-def _write_csv(path: Path, rows: Sequence[Dict[str, Any]]) -> None:
+def _write_csv(path: Path, rows: Sequence[Dict[str, Any]], fieldnames: Sequence[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fieldnames = ["model", "method", "concept", *METRICS]
     with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=list(fieldnames))
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _summary_csv_path(out_path: Path) -> Path:
+    return out_path.with_name(f"{out_path.stem}_summary{out_path.suffix}")
 
 
 def main() -> None:
@@ -315,11 +437,14 @@ def main() -> None:
         f"Seed {args.seed} test scores from {args.checkpoints_root} "
         f"({len(rows)} concept rows, grouped by model and method)\n"
     )
-    export = _print_group_tables(rows, args.concepts)
+    per_config, summary_rows = _print_score_tables(rows, args.concepts)
     if args.out is not None:
         out_path = args.out if args.out.is_absolute() else ROOT_DIR / args.out
-        _write_csv(out_path, export)
-        print(f"Wrote {len(export)} rows to {out_path}")
+        summary_path = _summary_csv_path(out_path)
+        _write_csv(out_path, per_config, ["model", "method", "concept", *METRICS])
+        _write_csv(summary_path, summary_rows, SUMMARY_FIELDS)
+        print(f"Wrote {len(per_config)} per-config rows to {out_path}")
+        print(f"Wrote {len(summary_rows)} mean/std rows to {summary_path}")
 
 
 if __name__ == "__main__":

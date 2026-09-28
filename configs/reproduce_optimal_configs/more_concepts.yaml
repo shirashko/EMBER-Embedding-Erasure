@@ -1375,6 +1375,31 @@ Llama:
         coherence: 1
         harmonic_alpaca: 0.826
         relearning_qa_open: 0.62
+    # Note: this specific config is not taken from Clara findings, but rather from my manual grid search run.
+    Republic of Ireland:
+      hyperparameters:
+        rank: 200
+        n_sentences: 300
+        seed: 42
+        embed_step_enabled: false
+        delta_embed: 0.0
+        k_features_embed: 0
+        n_tokens_edited: 0
+        k_pisces: 0.6
+        value_pisces: 13.0
+        ratio_thresh: 2.0
+      evaluation:
+        mmlu_acc: 0.647
+        mmlu_frac: 0.992
+        mmlu_invalid: 0
+        qa_acc: 0.08
+        qa_frac: 0.095
+        simdom_acc: 0.74
+        simdom_frac: 1
+        efficacy: 0.905
+        specificity: 0.996
+        harmonic: 0.948
+        relearning_qa_open: 0.28
   RMU:
     Golf:
       hyperparameters:

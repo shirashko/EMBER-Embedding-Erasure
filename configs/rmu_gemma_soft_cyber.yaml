@@ -1,0 +1,59 @@
+# Soft RMU grid for Gemma-2-2b-it / wmdp-cyber.
+#
+# Seed-42 picked the most aggressive train winner (lr=3e-4, α=50, steering=300).
+# Train QA dropped to 0.24 but held-out qa_frac stayed 1.0 (efficacy=0).
+# This grid stays below that cliff and trains for fewer batches.
+#
+# 24 cells: lr ∈ {1e-5, 3e-5} × α ∈ {5,10,20} × steering ∈ {10,30}
+#   × {S1, S2} × max_num_batches=50 (was 150).
+#
+# Results: results/rmu/google_gemma-2-2b-it/rank100/seed2042/
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/rmu_gemma_soft_cyber.yaml \
+#       --train-eval mc --concepts wmdp-cyber --skip-llm-judge
+#   sbatch --array=0 slurm/run_cyber_soft.slurm
+
+method: rmu
+model_name: google/gemma-2-2b-it
+rank: 100
+seed: 2042
+topk: 10
+run_tests_after_train: true
+features_source: local
+
+selection:
+  ratio_thresh: 2.0
+
+ember_step:
+  enabled: false
+
+rmu:
+  lr_grid: [1.0e-5, 3.0e-5]
+  alpha_grid: [5.0, 10.0, 20.0]
+  steering_grid: [10.0, 30.0]
+  batch_size: 16
+  max_num_batches: 50
+  min_len: 50
+  max_len: 2000
+  update_settings:
+    - setting_name: S1_lid7_L567
+      layer_id: 7
+      layer_ids: 5,6,7
+    - setting_name: S2_lid8_L678
+      layer_id: 8
+      layer_ids: 6,7,8
+
+eval:
+  alpaca: false
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints_soft

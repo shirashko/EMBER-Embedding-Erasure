@@ -1,0 +1,58 @@
+# Soft RMU grid for Qwen3.5-2B / wmdp-cyber.
+#
+# Seed-42 picked lr=3e-4, α=100, steering=30. Train QA 0.26, test qa_frac=1.0.
+# This grid uses smaller lr / α / steering and fewer batches.
+#
+# 24 cells: lr ∈ {1e-5, 3e-5} × α ∈ {10,20,30} × steering ∈ {10,30}
+#   × {S1, S3} × max_num_batches=50 (was 150).
+#
+# Results: results/rmu/Qwen_Qwen3.5-2B/rank100/seed2042/
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/rmu_qwen_soft_cyber.yaml \
+#       --train-eval mc --concepts wmdp-cyber --features-source local --skip-llm-judge
+#   sbatch --array=2 slurm/run_cyber_soft.slurm
+
+method: rmu
+model_name: Qwen/Qwen3.5-2B
+rank: 100
+seed: 2042
+topk: 10
+run_tests_after_train: true
+features_source: local
+
+selection:
+  ratio_thresh: 2.0
+
+ember_step:
+  enabled: false
+
+rmu:
+  lr_grid: [1.0e-5, 3.0e-5]
+  alpha_grid: [10.0, 20.0, 30.0]
+  steering_grid: [10.0, 30.0]
+  batch_size: 16
+  max_num_batches: 50
+  min_len: 50
+  max_len: 2000
+  update_settings:
+    - setting_name: S1_lid7_L567
+      layer_id: 7
+      layer_ids: 5,6,7
+    - setting_name: S3_lid11_L91011
+      layer_id: 11
+      layer_ids: 9,10,11
+
+eval:
+  alpaca: false
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints_soft

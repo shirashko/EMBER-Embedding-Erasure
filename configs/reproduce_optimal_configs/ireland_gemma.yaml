@@ -1,0 +1,156 @@
+# Gemma-only slice of more_concepts.yaml for Republic of Ireland.
+# Winning HPs are already materialized as:
+#   configs/reproduce_optimal_configs/{pisces,rmu,crisp,snmf}/gemma/republic_of_ireland.yaml
+#
+# Regenerating with generate_reproduce_configs.py --output-dir
+# configs/reproduce_optimal_configs would overwrite jobs.manifest.tsv.
+Gemma:
+  PISCES:
+    Republic of Ireland:
+      hyperparameters:
+        rank: 100
+        n_sentences: 300
+        seed: 42
+        embed_step_enabled: false
+        delta_embed: 0.0
+        k_features_embed: 0
+        n_tokens_edited: 0
+        k_pisces: 0.75
+        value_pisces: 42.0
+        ratio_thresh: 2.0
+      evaluation:
+        mmlu_acc: 0.532
+        mmlu_frac: 0.966
+        mmlu_invalid: 0
+        qa_acc: 0.06
+        qa_frac: 0.088
+        simdom_acc: 0.7
+        simdom_frac: 0.761
+        efficacy: 0.912
+        specificity: 0.851
+        harmonic: 0.88
+        alpaca_instr: 2
+        alp_instr_frac: 1
+        alpaca_flu: 1.96
+        alp_flu_frac: 1
+        coherence: 1
+        harmonic_alpaca: 0.917
+        relearning_qa_open: 0.32
+  RMU:
+    Republic of Ireland:
+      hyperparameters:
+        rank: 100
+        n_sentences: 300
+        seed: 42
+        embed_step_enabled: false
+        delta_embed: 0.0
+        k_features_embed: 0
+        n_tokens_edited: 0
+        lr: 0.0003
+        alpha: 10.0
+        steering: 1000.0
+        setting_name: S2_lid8_L678
+        layer_id: 8.0
+        layer_ids: 6,7,8
+        param_ids: 6
+      evaluation:
+        mmlu_acc: 0.452
+        mmlu_frac: 0.692
+        mmlu_invalid: 0
+        qa_acc: 0.24
+        qa_frac: 0
+        qa_invalid: 0
+        simdom_acc: 0.72
+        simdom_frac: 0.644
+        simdom_invalid: 0
+        efficacy: 1
+        specificity: 0.667
+        harmonic: 0.8
+        alpaca_instr: 1.987
+        alp_instr_frac: 0.993
+        alpaca_flu: 1.933
+        alp_flu_frac: 1
+        coherence: 0.997
+        harmonic_alpaca: 0.856
+        relearning_qa_mc: 0.64
+  CRISP:
+    Republic of Ireland:
+      hyperparameters:
+        rank: 100
+        n_sentences: 300
+        seed: 42
+        embed_step_enabled: false
+        delta_embed: 0.0
+        k_features_embed: 0
+        n_tokens_edited: 0
+        k_features: 5
+        alpha: 20.0
+        lr: 0.0005
+        layer_lo: 4
+        layer_hi: 20
+        layer_step: 2
+        num_epochs: 2
+        lora_rank: 4
+      evaluation:
+        mmlu_acc: 0.539
+        mmlu_frac: 0.99
+        mmlu_invalid: 0
+        qa_acc: 0.44
+        qa_frac: 0.373
+        qa_invalid: 0
+        simdom_acc: 0.96
+        simdom_frac: 0.973
+        simdom_invalid: 0
+        efficacy: 0.627
+        specificity: 0.981
+        harmonic: 0.765
+        alpaca_instr: 1.993
+        alp_instr_frac: 0.997
+        alpaca_flu: 1.953
+        alp_flu_frac: 1
+        coherence: 0.998
+        harmonic_alpaca: 0.83
+        relearning_qa_mc: 0.6
+  SNMF:
+    Republic of Ireland:
+      hyperparameters:
+        rank: 100
+        n_sentences: 300
+        seed: 42
+        embed_step_enabled: false
+        delta_embed: 0.0
+        k_features_embed: 0
+        n_tokens_edited: 0
+        w_mode: both
+        feature_source: all
+        ratio_thresh: 2.0
+        coverage_thresh: 0.95
+        neurons_thresh: null
+        delta_in: 1.0
+        layer_lo_in: 0
+        layer_hi_in: 12
+        k_features_mlp_in: 5
+        delta_out: 10.0
+        layer_lo_out: 0
+        layer_hi_out: 8
+        k_features_mlp_out: 5
+      evaluation:
+        mmlu_acc: 0.511
+        mmlu_frac: 0.894
+        mmlu_invalid: 0
+        qa_acc: 0.58
+        qa_frac: 0.647
+        qa_invalid: 0
+        simdom_acc: 0.84
+        simdom_frac: 0.808
+        simdom_invalid: 0
+        efficacy: 0.353
+        specificity: 0.849
+        harmonic: 0.499
+        alpaca_instr: 2
+        alp_instr_frac: 1
+        alpaca_flu: 1.973
+        alp_flu_frac: 1
+        coherence: 1
+        harmonic_alpaca: 0.599
+        relearning_qa_mc: 0.68

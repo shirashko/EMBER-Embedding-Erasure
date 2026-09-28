@@ -5,3 +5,6 @@ configs/crisp_qwen.yaml	Uranium	mc	local
 configs/crisp_qwen.yaml	Cannabis	mc	local
 configs/crisp_qwen.yaml	Baseball	mc	local
 configs/crisp_qwen.yaml	Gambling	mc	local
+configs/crisp_qwen.yaml	wmdp-bio	mc	local
+configs/crisp_qwen.yaml	wmdp-cyber	mc	local
+configs/crisp_qwen.yaml	Republic of Ireland	mc	local
