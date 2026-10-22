@@ -30,3 +30,11 @@ configs/reproduce_optimal_configs/snmf/llama/baseball.yaml	Baseball	mc
 configs/reproduce_optimal_configs/snmf/llama/cannabis.yaml	Cannabis	mc
 configs/reproduce_optimal_configs/snmf/llama/culture_of_greece.yaml	Culture of Greece	mc
 configs/reproduce_optimal_configs/snmf/llama/gambling.yaml	Gambling	mc
+configs/reproduce_optimal_configs/crisp/gemma/republic_of_ireland.yaml	Republic of Ireland	mc
+configs/reproduce_optimal_configs/pisces/gemma/republic_of_ireland.yaml	Republic of Ireland	open
+configs/reproduce_optimal_configs/rmu/gemma/republic_of_ireland.yaml	Republic of Ireland	mc
+configs/reproduce_optimal_configs/snmf/gemma/republic_of_ireland.yaml	Republic of Ireland	mc
+configs/reproduce_optimal_configs/crisp/llama/republic_of_ireland.yaml	Republic of Ireland	mc
+configs/reproduce_optimal_configs/pisces/llama/republic_of_ireland.yaml	Republic of Ireland	open
+configs/reproduce_optimal_configs/rmu/llama/republic_of_ireland.yaml	Republic of Ireland	mc
+configs/reproduce_optimal_configs/snmf/llama/republic_of_ireland.yaml	Republic of Ireland	mc

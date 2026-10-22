@@ -1,0 +1,47 @@
+# Frozen SNMF concept scoring for the shared Llama-3.1-8B-Instruct dictionary.
+# Every key is required. Change this file to retarget the run; the launcher
+# does not fill in missing values from argparse defaults.
+#
+#   sbatch scripts/score_frozen_snmf.sh
+#   sbatch scripts/score_frozen_snmf.sh configs/frozen_snmf/llama3_1_8b_it_rank200_init_random_mlp_intermediate.yaml
+
+# Shared dictionary: layer_*/snmf_factors.pt trained on snmf_training_data.
+# The directory name mlp_intermediate is that repo's name for the down-projection
+# input. This repo calls the same tensor mlp and reads blocks.{layer}.mlp.hook_post.
+# The scorer reads snmf.mode from the dictionary config and applies that mapping.
+factors_dir: /home/morg/students/rashkovits/unlearning-detection/outputs/snmf/llama3_1_8b_it/rank200/snmf_training_data/init_random/mlp_intermediate
+factors_filename: snmf_factors.pt
+model_name: meta-llama/Llama-3.1-8B-Instruct
+
+concepts:
+  - Cannabis
+  - Gambling
+concept_path: data/concept_sentences.json
+neutral_path: data/neutral_sentences.json
+
+# Mirrors the dictionary identity: model, rank, training corpus, init, site.
+outdir: outputs/frozen_snmf_scores/llama3_1_8b_it/rank200/snmf_training_data/init_random/mlp_intermediate
+
+# Llama-3.1-8B-Instruct has layers 0-31. Use null to score every layer_* directory.
+layers: "0-31"
+layer_chunk: 1
+batch_size: 4
+
+# S_CD = log(max_concept / (max_neutral + eps)). g_iters / reg are the frozen-F coefficient solve.
+eps: 1.0e-8
+g_iters: 40
+reg: 0.0001
+
+# Shortlist size per layer, for both concept detection and promotion, and for Gemini.
+top_k: 10
+# Activating tokens and logit-lens tokens stored on each feature.
+k_proj: 30
+# How many of those tokens are sent to the membership judge.
+judge_top_tokens: 20
+confidence_thresh: 0.85
+gemini_model: gemini-2.5-flash-lite
+max_workers: 5
+skip_interpret: false
+
+device: cuda
+overwrite: false

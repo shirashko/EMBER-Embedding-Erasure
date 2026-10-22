@@ -33,10 +33,15 @@ GEMMA_LAYER_RANGES_IN: List[Tuple[int, int]]  = [(0, 25), (0, 8), (0, 12)]
 GEMMA_LAYER_RANGES_OUT: List[Tuple[int, int]] = [(0, 8), (9, 17), (13, 25)]
 LLAMA_LAYER_RANGES_IN: List[Tuple[int, int]]  = [(0, 31), (0, 10), (0, 16)]
 LLAMA_LAYER_RANGES_OUT: List[Tuple[int, int]] = [(0, 10), (11, 21), (16, 31)]
+QWEN_LAYER_RANGES_IN: List[Tuple[int, int]]  = [(0, 23), (0, 7), (0, 12)]
+QWEN_LAYER_RANGES_OUT: List[Tuple[int, int]] = [(0, 7), (8, 16), (12, 23)]
 
 
 def _layer_ranges(model_name: str) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
-    if "llama" in model_name.lower():
+    name = model_name.lower()
+    if "qwen" in name:
+        return QWEN_LAYER_RANGES_IN, QWEN_LAYER_RANGES_OUT
+    if "llama" in name:
         return LLAMA_LAYER_RANGES_IN, LLAMA_LAYER_RANGES_OUT
     return GEMMA_LAYER_RANGES_IN, GEMMA_LAYER_RANGES_OUT
 

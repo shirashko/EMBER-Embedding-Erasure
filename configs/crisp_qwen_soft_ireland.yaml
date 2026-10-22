@@ -1,0 +1,58 @@
+# Soft CRISP grid for Qwen3.5-2B / Republic of Ireland.
+#
+# Seed-42 (k≥5, α≥5, lr≥5e-5, 2 epochs) dropped train MMLU to ≤38% on every
+# cell, so min_mmlu=0.7 never passed. This grid goes below that floor.
+#
+# 18 cells: k ∈ {1,3,5} × α ∈ {1,2,5} × lr ∈ {1e-5, 5e-5}
+#   × one shallow band (4,14,2) × 1 epoch.
+# α=5 is a control against the old floor.
+#
+# Results: results/crisp/Qwen_Qwen3.5-2B/rank100/seed2042/
+# Checkpoints: unlearned_checkpoints_crisp_soft/
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/crisp_qwen_soft_ireland.yaml \
+#       --train-eval mc --concepts "Republic of Ireland" --skip-llm-judge
+#   sbatch slurm/run_qwen_crisp_soft.slurm
+
+method: crisp
+model_name: Qwen/Qwen3.5-2B
+rank: 100
+seed: 2042
+topk: 10
+run_tests_after_train: true
+
+selection:
+  ratio_thresh: 2.0
+
+ember_step:
+  enabled: false
+
+crisp:
+  k_features_grid: [1, 3, 5]
+  alpha_grid: [1.0, 2.0, 5.0]
+  lr_grid: [1.0e-5, 5.0e-5]
+  layer_ranges:
+    - [4, 14, 2]
+  batch_size: 16
+  num_epochs: 1
+  lora_batch_size: 16
+  beta: 0.99
+  gamma: 0.01
+  lora_rank: 4
+  sae_cache: qwen_sae_cache
+  max_len: 2000
+
+eval:
+  alpaca: false
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints_crisp_soft

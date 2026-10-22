@@ -1,3 +1,4 @@
 configs/reproduce_optimal_configs/rmu/gemma/ancient_rome.yaml	Ancient Rome	mc
 configs/reproduce_optimal_configs/rmu/gemma/golf.yaml	Golf	mc
 configs/reproduce_optimal_configs/rmu/gemma/uranium.yaml	Uranium	mc
+configs/reproduce_optimal_configs/rmu/gemma/republic_of_ireland.yaml	Republic of Ireland	mc

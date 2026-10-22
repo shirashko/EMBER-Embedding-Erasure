@@ -1,0 +1,27 @@
+# Git
+.git/
+
+# Build / egg-info
+*.egg-info/
+__pycache__/
+*.pyc
+
+# Slurm logs
+slurm_outputs/
+slurm_errors/
+
+# Large data & model artifacts
+data/
+mf_outputs/
+unlearned_checkpoints/
+results/
+
+# External vendored code
+external/
+
+# Misc
+*.pt
+*.safetensors
+*.bin
+*.ckpt
+*.onnx

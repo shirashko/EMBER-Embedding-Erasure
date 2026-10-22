@@ -5,6 +5,9 @@ from __future__ import annotations
 BASE_MODEL_SLUGS: dict[str, str] = {
     "google_gemma-2-2b-it": "gemma-2-2b-it",
     "meta-llama_Llama-3.1-8B-Instruct": "llama-3.1-8b-instruct",
+    "Qwen_Qwen3.5-2B": "qwen3.5-2b",
+    "Qwen_Qwen2.5-3B-Instruct": "qwen2.5-3b-instruct",
+    "Qwen_Qwen3-1.7B": "qwen3-1.7b",
 }
 
 

@@ -1,0 +1,56 @@
+# Soft SNMF grid for Qwen3.5-2B / wmdp-cyber.
+#
+# Seed-42 picked delta_in=7. Train QA 0.18, test qa_frac=1.0 (efficacy=0).
+# This grid uses smaller deltas and early-layer bands only.
+#
+# 18 cells: in_delta ∈ {0.25,0.5,1} × in-range {(0,7),(0,12)}
+#   × out_delta ∈ {0.25,0.5,1} × out-range {(0,7)}.
+#
+# Seed 2042 writes a new results folder. SNMF features still come from seed42
+# via mf_outputs/.../seed2042 -> seed42 symlinks.
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/snmf_qwen_soft_cyber.yaml \
+#       --train-eval mc --concepts wmdp-cyber --features-source local --skip-llm-judge
+#   sbatch --array=3 slurm/run_cyber_soft.slurm
+
+method: snmf
+model_name: Qwen/Qwen3.5-2B
+rank: 100
+seed: 2042
+topk: 10
+run_tests_after_train: true
+features_source: local
+
+selection:
+  ratio_thresh: 2.0
+  coverage_thresh: 0.95
+
+ember_step:
+  enabled: false
+
+snmf:
+  w_mode: both
+  feature_source: all
+  in_deltas: [0.25, 0.5, 1.0]
+  out_deltas: [0.25, 0.5, 1.0]
+  layer_ranges_in:
+    - [0, 7]
+    - [0, 12]
+  layer_ranges_out:
+    - [0, 7]
+  dtype: bf16
+
+eval:
+  alpaca: false
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints_soft

@@ -11,13 +11,16 @@ features are already on disk.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Iterable, Optional
 
 from ember.utils import _safe_model_name, _safe_concept
 from ember.erasure import log
 
-DATASET_REPO = "ClSu/ember-features"
+# Enable use different repos other than Clara's public Gemma/Llama features.
+# Override with EMBER_FEATURES_REPO to pull another dataset (e.g. shirasko/qwen-snmf-features).
+DATASET_REPO = os.environ.get("EMBER_FEATURES_REPO", "ClSu/ember-features")
 DEFAULT_ROOT = Path(__file__).resolve().parents[1] / "mf_outputs"
 
 

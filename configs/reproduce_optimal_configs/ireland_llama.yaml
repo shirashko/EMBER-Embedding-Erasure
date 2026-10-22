@@ -1,0 +1,150 @@
+# Llama slice of more_concepts.yaml for Republic of Ireland.
+# Winning HPs are already materialized as:
+#   configs/reproduce_optimal_configs/{pisces,rmu,crisp,snmf}/llama/republic_of_ireland.yaml
+#
+# Regenerating with generate_reproduce_configs.py --output-dir
+# configs/reproduce_optimal_configs would overwrite jobs.manifest.tsv.
+Llama:
+  PISCES:
+    Republic of Ireland:
+      hyperparameters:
+        rank: 200
+        n_sentences: 300
+        seed: 42
+        embed_step_enabled: false
+        delta_embed: 0.0
+        k_features_embed: 0
+        n_tokens_edited: 0
+        k_pisces: 0.6
+        value_pisces: 13.0
+        ratio_thresh: 2.0
+      evaluation:
+        mmlu_acc: 0.647
+        mmlu_frac: 0.992
+        mmlu_invalid: 0
+        qa_acc: 0.08
+        qa_frac: 0.095
+        simdom_acc: 0.74
+        simdom_frac: 1
+        efficacy: 0.905
+        specificity: 0.996
+        harmonic: 0.948
+        relearning_qa_open: 0.28
+  RMU:
+    Republic of Ireland:
+      hyperparameters:
+        rank: 200
+        n_sentences: 300
+        seed: 42
+        embed_step_enabled: false
+        delta_embed: 0.0
+        k_features_embed: 0
+        n_tokens_edited: 0
+        lr: 0.0003
+        alpha: 50.0
+        steering: 30.0
+        setting_name: S1_lid7_L567
+        layer_id: 7
+        layer_ids: 5,6,7
+        param_ids: 6
+      evaluation:
+        mmlu_acc: 0.613
+        mmlu_frac: 0.907
+        mmlu_invalid: 0
+        qa_acc: 0.1
+        qa_frac: 0
+        qa_invalid: 0.68
+        simdom_acc: 0.96
+        simdom_frac: 0.947
+        simdom_invalid: 0.02
+        efficacy: 1
+        specificity: 0.927
+        harmonic: 0.962
+        alpaca_instr: 1.987
+        alp_instr_frac: 0.993
+        alpaca_flu: 1.92
+        alp_flu_frac: 1
+        coherence: 0.997
+        harmonic_alpaca: 0.973
+        relearning_qa_mc: 0.82
+  CRISP:
+    Republic of Ireland:
+      hyperparameters:
+        rank: 200
+        n_sentences: 300
+        seed: 42
+        embed_step_enabled: false
+        delta_embed: 0.0
+        k_features_embed: 0
+        n_tokens_edited: 0
+        k_features: 5
+        alpha: 20.0
+        lr: 0.0005
+        layer_lo: 5
+        layer_hi: 19
+        layer_step: 2
+        num_epochs: 2
+        lora_rank: 4
+      evaluation:
+        mmlu_acc: 0.594
+        mmlu_frac: 0.86
+        mmlu_invalid: 0
+        qa_acc: 0.38
+        qa_frac: 0.22
+        qa_invalid: 0
+        simdom_acc: 0.92
+        simdom_frac: 0.893
+        simdom_invalid: 0
+        efficacy: 0.78
+        specificity: 0.876
+        harmonic: 0.825
+        alpaca_instr: 2
+        alp_instr_frac: 1
+        alpaca_flu: 1.94
+        alp_flu_frac: 1
+        coherence: 1
+        harmonic_alpaca: 0.876
+        relearning_qa_mc: 0.8
+  SNMF:
+    Republic of Ireland:
+      hyperparameters:
+        rank: 200
+        n_sentences: 300
+        seed: 42
+        embed_step_enabled: false
+        delta_embed: 0.0
+        k_features_embed: 0
+        n_tokens_edited: 0
+        w_mode: both
+        feature_source: all
+        ratio_thresh: 2.0
+        coverage_thresh: 0.95
+        neurons_thresh: null
+        delta_in: 10.0
+        layer_lo_in: 0
+        layer_hi_in: 31
+        k_features_mlp_in: 38
+        delta_out: 1.0
+        layer_lo_out: 0
+        layer_hi_out: 10
+        k_features_mlp_out: 15
+      evaluation:
+        mmlu_acc: 0.645
+        mmlu_frac: 0.988
+        mmlu_invalid: 0
+        qa_acc: 0.36
+        qa_frac: 0.186
+        qa_invalid: 0.18
+        simdom_acc: 0.98
+        simdom_frac: 0.973
+        simdom_invalid: 0
+        efficacy: 0.814
+        specificity: 0.98
+        harmonic: 0.889
+        alpaca_instr: 1.993
+        alp_instr_frac: 0.997
+        alpaca_flu: 1.787
+        alp_flu_frac: 0.934
+        coherence: 0.964
+        harmonic_alpaca: 0.913
+        relearning_qa_mc: 0.52
