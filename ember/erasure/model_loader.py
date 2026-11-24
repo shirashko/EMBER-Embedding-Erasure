@@ -8,6 +8,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from ember.erasure import log
+from ember.erasure.hf_layers import is_qwen
 
 
 def _resolve_device_map() -> str:
@@ -49,12 +50,30 @@ def load_hf_model(
     tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir_arg)
     tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        device_map=_resolve_device_map(),
-        torch_dtype=dtype,
-        cache_dir=cache_dir_arg,
-    )
+    if is_qwen(model_name):
+        # Published Qwen3.5 checkpoints are multimodal. Load text-only weights.
+        from transformers import AutoConfig, Qwen3_5ForCausalLM
+
+        config = AutoConfig.from_pretrained(model_name, cache_dir=cache_dir_arg)
+        text_config = (
+            config.get_text_config()
+            if hasattr(config, "get_text_config")
+            else getattr(config, "text_config", config)
+        )
+        model = Qwen3_5ForCausalLM.from_pretrained(
+            model_name,
+            config=text_config,
+            device_map=_resolve_device_map(),
+            torch_dtype=dtype,
+            cache_dir=cache_dir_arg,
+        )
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            device_map=_resolve_device_map(),
+            torch_dtype=dtype,
+            cache_dir=cache_dir_arg,
+        )
 
     if "gemma-2" in model_name.lower():
         with torch.no_grad():

@@ -30,6 +30,7 @@ import torch
 
 from ember.erasure import embed_edit, io, log
 from ember.erasure.config import RunConfig
+from ember.erasure.hf_layers import is_qwen
 from ember.erasure.methods.base import Method, register
 from ember.local_datasets import ConceptDataset, resolve_neutral_path
 
@@ -52,10 +53,22 @@ LLAMA_LAYER_RANGES: List[Tuple[int, int, int]] = [
     (5, 29, 2),
     (4, 28, 2),
 ]
+# Qwen3.5-2B: 24 layers. Same mid-depth bands as Gemma, capped at layer 23.
+QWEN_LAYER_RANGES: List[Tuple[int, int, int]] = [
+    (4, 14, 2),
+    (5, 15, 2),
+    (4, 20, 2),
+    (5, 21, 2),
+]
 
 
 def _layer_ranges(model_name: str) -> List[Tuple[int, int, int]]:
-    return LLAMA_LAYER_RANGES if "llama" in model_name.lower() else GEMMA_LAYER_RANGES
+    name = model_name.lower()
+    if "qwen" in name:
+        return QWEN_LAYER_RANGES
+    if "llama" in name:
+        return LLAMA_LAYER_RANGES
+    return GEMMA_LAYER_RANGES
 
 
 def validate_layer_ranges(
@@ -81,6 +94,16 @@ def resolve_layer_ranges(cfg: Any, model_name: str) -> List[Tuple[int, int, int]
     return validate_layer_ranges(cfg.layer_ranges, model_name)
 
 
+def _layer_cache_valid(layer_path: Path) -> bool:
+    """True when a layer dir already holds downloaded SAE weights."""
+    if not layer_path.is_dir():
+        return False
+    return any(
+        f.is_file() and f.suffix in (".pt", ".safetensors", ".npz", ".json")
+        for f in layer_path.rglob("*")
+    )
+
+
 def _load_coherency_prompts(concept_name: str) -> List[str]:
     if not COHER_PROMPTS_PATH.exists():
         raise FileNotFoundError(f"Missing coherency prompts JSON: {COHER_PROMPTS_PATH}")
@@ -97,29 +120,55 @@ def _load_coherency_prompts(concept_name: str) -> List[str]:
 def _download_saes_once(model_name: str, layer_ranges: List[Tuple[int, int, int]],
                         sae_cache: str) -> None:
     """Fetch any missing SAE checkpoints to ``external/CRISP/crisp/<sae_cache>/``."""
-    from external.CRISP.crisp.sae import JumpReLUSAE, TopkSae  # type: ignore
+    from external.CRISP.crisp.sae import JumpReLUSAE, QwenScopeTopkSae, TopkSae  # type: ignore
 
     all_layers = sorted({L for (lo, hi, st) in layer_ranges
                          for L in range(lo, hi + 1, st)})
     cache_dir = ROOT_DIR / "external" / "CRISP" / "crisp" / sae_cache
     cache_dir.mkdir(parents=True, exist_ok=True)
 
+    # hf_hub_download writes to HF cache; use a writable dir if the shared
+    # hub cache (HUGGINGFACE_HUB_CACHE) is read-only on compute nodes.
+    hub_cache = os.environ.get("HF_HOME") or os.environ.get("HUGGINGFACE_HUB_CACHE")
+    if hub_cache:
+        hub_path = Path(hub_cache)
+        if not os.access(hub_path, os.W_OK):
+            writable = Path.home() / "hf_cache"
+            writable.mkdir(parents=True, exist_ok=True)
+            os.environ["HF_HOME"] = str(writable)
+            os.environ["HUGGINGFACE_HUB_CACHE"] = str(writable / "hub")
+
     is_llama = "llama" in model_name.lower()
+    is_qwen = "qwen" in model_name.lower()
     for layer in all_layers:
         layer_path = cache_dir / f"layer_{layer}"
-        valid = (layer_path.exists() and layer_path.is_dir()
-                 and any(f.suffix in (".pt", ".safetensors", ".npz", ".json")
-                         for f in layer_path.iterdir()))
-        if valid:
+        if _layer_cache_valid(layer_path):
             continue
         log.info("CRISP: downloading missing SAE for layer %d", layer)
-        if is_llama:
+        if is_qwen:
+            QwenScopeTopkSae.download_and_save(layer=layer, save_path=cache_dir)
+        elif is_llama:
             TopkSae.download_and_save(layer=layer, save_path=cache_dir)
         else:
             JumpReLUSAE.download_and_save(layer=layer, save_path=cache_dir)
 
 
-def _build_crisp_data(concept_name: str, max_len: int, seed: int, *, neutral_path: str):
+def _resolve_sae_cache(model_name: str, configured: str) -> str:
+    name = model_name.lower()
+    if "qwen" in name:
+        return "qwen_sae_cache"
+    if "llama" in name and configured == "gemma_sae_cache":
+        return "llama_sae_cache"
+    return configured
+
+
+def _build_crisp_data(
+        concept_name: str,
+        max_len: int,
+        seed: int,
+        *,
+        neutral_path: str,
+):
     data = ConceptDataset(
         concept_name,
         neutral_path=resolve_neutral_path(neutral_path),
@@ -129,12 +178,6 @@ def _build_crisp_data(concept_name: str, max_len: int, seed: int, *, neutral_pat
         forget = [s for s in forget if len(s) <= max_len]
         retain = [s for s in retain if len(s) <= max_len]
     return forget, retain
-
-
-def _resolve_sae_cache(model_name: str, configured: str) -> str:
-    if "llama" in model_name.lower() and configured == "gemma_sae_cache":
-        return "llama_sae_cache"
-    return configured
 
 
 class CRISPMethod(Method):
@@ -282,6 +325,9 @@ class CRISPMethod(Method):
         )
         log.info("CRISP: unlearn_lora (k=%d alpha=%g lr=%g range=%s)",
                  hp["k_features"], hp["alpha"], hp["lr"], layer_range)
+        # Qwen3.5 DeltaNet state must not be cached while LoRA backprop runs.
+        if is_qwen(common.model_name):
+            self._crisp.model.config.use_cache = False
         with torch.enable_grad():
             unlearn_lora(crisp=self._crisp,
                          text_target=self._forget,

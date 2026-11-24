@@ -27,6 +27,7 @@ import torch
 
 from ember.utils import _safe_concept, _safe_model_name, get_pipeline_path
 from ember.erasure import log
+from ember.erasure.hf_layers import decoder_layers
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 MF_OUTPUTS_ROOT = ROOT_DIR / "mf_outputs"
@@ -74,7 +75,7 @@ def _load_feature(model, nmf, layer: int, feature_idx: int,
         F = torch.as_tensor(F)
     f = F[:, int(feature_idx)]  # [d_mlp]
 
-    mlp = model.model.layers[int(layer)].mlp
+    mlp = decoder_layers(model)[int(layer)].mlp
     if out:
         W = mlp.down_proj.weight  # [d_model, d_mlp]
         f = f.to(device=W.device, dtype=W.dtype)

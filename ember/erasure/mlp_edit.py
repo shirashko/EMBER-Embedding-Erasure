@@ -11,12 +11,14 @@ from typing import Any, Dict, List, Sequence, Tuple, Union
 
 import torch
 
+from ember.erasure.hf_layers import decoder_layers, n_decoder_layers
+
 _F_EPS = 1e-8
 
 
 def _mlp_layer(hf_model: Any, layer_idx: int) -> torch.nn.Module:
     try:
-        return hf_model.model.layers[layer_idx].mlp
+        return decoder_layers(hf_model)[layer_idx].mlp
     except (AttributeError, IndexError) as e:
         raise ValueError(
             f"HF model {type(hf_model).__name__} has no MLP at layer {layer_idx}: {e}"
@@ -24,7 +26,7 @@ def _mlp_layer(hf_model: Any, layer_idx: int) -> torch.nn.Module:
 
 
 def _n_layers(hf_model: Any) -> int:
-    return len(hf_model.model.layers)
+    return n_decoder_layers(hf_model)
 
 
 def _normalize(f: torch.Tensor) -> torch.Tensor:

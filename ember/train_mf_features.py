@@ -80,7 +80,13 @@ def main():
         mode="mlp",
     )
     model = act_generator.model
+    # Qwen (and some Llama checkpoints) ship with pad_token=None. Activation
+    # masking treats pad == bos and would keep every token if pad_id is None.
+    if model.tokenizer.pad_token is None:
+        model.tokenizer.pad_token = model.tokenizer.eos_token
     tokenizer = AutoTokenizer.from_pretrained(args.model_name, cache_dir=args.cache_dir, use_fast=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
 
     num_layers = (
         int(model.cfg.n_layers) if hasattr(model, "cfg")

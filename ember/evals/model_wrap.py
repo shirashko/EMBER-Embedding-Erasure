@@ -7,7 +7,7 @@ import torch
 
 
 class WrappedHFModel:
-    """Unified HF generation wrapper for Gemma-2 and Llama-3-Instruct."""
+    """Unified HF generation wrapper for Gemma-2, Llama-3-Instruct, and Qwen3.5."""
 
     def __init__(self, model: Any, tokenizer: Any, it: bool = True) -> None:
         self.model = model
@@ -32,6 +32,9 @@ class WrappedHFModel:
     def _is_gemma(self) -> bool:
         return "gemma" in self.tokenizer_name().lower()
 
+    def _is_qwen(self) -> bool:
+        return "qwen" in self.tokenizer_name().lower()
+
     def _device(self) -> torch.device:
         return next(self.model.parameters()).device
 
@@ -46,16 +49,29 @@ class WrappedHFModel:
             add_special_tokens=True so the tokenizer prepends BOS as a
             token - single BOS.
 
-        Llama-3: keep the template intact and tokenize with
+        Llama-3 / Qwen: keep the template intact and tokenize with
             add_special_tokens=False to prevent a second BOS prepend.
         """
         if not self.it:
             return prompt
-        s = self.tokenizer.apply_chat_template(
-            [{"role": "user", "content": prompt}],
-            tokenize=False,
-            add_generation_prompt=True,
-        )
+        template_kwargs: Dict[str, Any] = {
+            "tokenize": False,
+            "add_generation_prompt": True,
+        }
+        # Qwen3.5 Instruct defaults to a thinking block that breaks MC letter parse.
+        if self._is_qwen():
+            template_kwargs["enable_thinking"] = False
+        try:
+            s = self.tokenizer.apply_chat_template(
+                [{"role": "user", "content": prompt}],
+                **template_kwargs,
+            )
+        except TypeError:
+            s = self.tokenizer.apply_chat_template(
+                [{"role": "user", "content": prompt}],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
         if self._is_gemma():
             return s[5:]   # strip '<bos>'; tokenizer prepends it as a token
         return s
@@ -89,6 +105,7 @@ class WrappedHFModel:
         After decode(skip_special_tokens=True):
           Gemma-2: 'user\\n{question}\\nmodel\\n{response}'
           Llama-3: 'user\\n\\n{question}\\n\\nassistant\\n\\n{response}'
+          Qwen: 'user\\n{question}\\nassistant\\n{response}'
         """
         if not self.it:
             return decoded
@@ -101,6 +118,19 @@ class WrappedHFModel:
         if self._is_llama():
             idx = decoded.find("assistant\n\n")
             return decoded[idx + len("assistant\n\n"):].strip() if idx != -1 else decoded
+        if self._is_qwen():
+            # After skip_special_tokens: "user\n{prompt}\nassistant\n{generation}".
+            # Do not fall back to a bare "assistant" match — that can slice
+            # inside the model's own answer.
+            marker = "\nassistant\n"
+            idx = decoded.rfind(marker)
+            if idx != -1:
+                decoded = decoded[idx + len(marker):].strip()
+            elif decoded.startswith("assistant\n"):
+                decoded = decoded[len("assistant\n"):].strip()
+            if self._is_qwen() and "</think>" in decoded:
+                decoded = decoded.rsplit("</think>", 1)[-1].strip()
+            return decoded
         raise AssertionError(f"Unknown tokenizer: {self.tokenizer_name()}")
 
     # ------------------------------------------------------------------ #
