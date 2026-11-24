@@ -187,6 +187,8 @@ class RunConfig:
     run_tests_after_train: bool = True
     features_source: str = "hf"  # "hf": download features from the HF dataset; "local": read mf_outputs/ as-is
     neutral_path: str = "data/neutral_sentences.json"
+    # Empty keeps grid logs under results/. A relative path is resolved from the repo root.
+    results_root: str = ""
 
     ember_step: EMBERStepConfig = field(default_factory=EMBERStepConfig)
     selection: SelectionConfig = field(default_factory=SelectionConfig)
