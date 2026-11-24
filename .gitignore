@@ -50,4 +50,10 @@ tmp
 
 experiments/crisp_features/*/
 
-outputs/frozen_snmf_scores/
+outputs/
+
+# Backups written by prepare_*/upsert_* scripts (--backup)
+*.bak
+
+# Ad-hoc report output
+/summary_table.csv

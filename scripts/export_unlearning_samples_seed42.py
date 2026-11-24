@@ -105,7 +105,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--out",
         type=Path,
-        default=ROOT / "data" / "unlearning_samples_seed42.json",
+        default=ROOT / "outputs" / "unlearning_samples_seed42.json",
     )
     return p.parse_args()
 
