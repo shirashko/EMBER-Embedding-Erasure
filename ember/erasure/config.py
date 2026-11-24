@@ -158,6 +158,13 @@ class RelearningConfig:
     csv_path: str = "data/relearn_paragraphs.json"
 
 
+@dataclass
+class CheckpointConfig:
+    """Optional export of the post-unlearning model weights."""
+    enabled: bool = False
+    root: str = "unlearned_checkpoints"
+
+
 # ========================================================================== #
 # Top-level RunConfig                                                         #
 # ========================================================================== #
@@ -185,6 +192,7 @@ class RunConfig:
     selection: SelectionConfig = field(default_factory=SelectionConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
     relearning: RelearningConfig = field(default_factory=RelearningConfig)
+    checkpoint: CheckpointConfig = field(default_factory=CheckpointConfig)
 
     snmf: SNMFGridConfig = field(default_factory=SNMFGridConfig)
     rmu: RMUGridConfig = field(default_factory=RMUGridConfig)
@@ -277,6 +285,7 @@ def load_yaml(path: Path) -> RunConfig:
         "selection": SelectionConfig,
         "eval": EvalConfig,
         "relearning": RelearningConfig,
+        "checkpoint": CheckpointConfig,
         "snmf": SNMFGridConfig,
         "rmu": RMUGridConfig,
         "crisp": CRISPGridConfig,
@@ -327,6 +336,8 @@ def build_parser() -> argparse.ArgumentParser:
                         "ClSu/ember-features dataset, 'local' reads mf_outputs/ as-is.")
     p.add_argument("--skip-llm-judge", action="store_true", default=False,
                    help="Skip Gemini calls for Alpaca and open-QA baselines/eval.")
+    p.add_argument("--checkpoint-root", type=str, default=None,
+                   help="Override checkpoint.root from the YAML config.")
     p.add_argument("--neutral-path", type=str, default=None,
                    help="Retain corpus JSON (default: data/neutral_sentences.json).")
     return p
@@ -350,6 +361,8 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
         cfg.features_source = args.features_source
     if args.skip_llm_judge:
         cfg.eval.skip_llm_judge = True
+    if args.checkpoint_root is not None:
+        cfg.checkpoint.root = args.checkpoint_root
     if args.neutral_path is not None:
         cfg.neutral_path = args.neutral_path
     cfg.validate()
@@ -361,6 +374,6 @@ __all__ = [
     "EMBERStepConfig", "SelectionConfig",
     "SNMFGridConfig", "RMUGridConfig", "CRISPGridConfig", "EMBERConfig",
     "PISCESGridConfig",
-    "EvalConfig", "RelearningConfig", "RunConfig",
+    "EvalConfig", "RelearningConfig", "CheckpointConfig", "RunConfig",
     "load_yaml", "build_parser", "parse_args",
 ]
