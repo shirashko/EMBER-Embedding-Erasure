@@ -26,7 +26,7 @@ from ember.erasure import embed_edit, io, log
 from ember.erasure.config import RunConfig
 from ember.erasure.methods.base import Method, register
 from ember.erasure.model_loader import load_hf_model
-from ember.local_datasets import ConceptDataset
+from ember.local_datasets import ConceptDataset, resolve_neutral_path
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 sys.path.append(str(ROOT_DIR))
@@ -110,10 +110,26 @@ def _grids_and_settings(common: RunConfig
     return lrs, alphas, steerings, settings
 
 
-def _build_rmu_data(concept_name: str, min_len: int, max_len: int, batch_size: int,
-                    seed: int):
-    """Returns batched forget/retain lists in the format run_rmu expects."""
-    data = ConceptDataset(concept_name).as_forget_retain(seed=seed)
+def _build_rmu_data(
+        concept_name: str,
+        min_len: int,
+        max_len: int,
+        batch_size: int,
+        *,
+        seed: int,
+        neutral_path: str,
+) -> Tuple[List[List[List[str]]], List[List[List[str]]]]:
+    """Return batched forget/retain lists in the format ``run_rmu`` expects.
+
+    Text is raw concept/neutral sentences, same as Gemma/Llama RMU and the
+    original WMDP recipe. Chat-template wrapping is applied at *eval* time
+    in ``WrappedHFModel``; wrapping here would change the RMU training
+    distribution relative to the other models.
+    """
+    data = ConceptDataset(
+        concept_name,
+        neutral_path=resolve_neutral_path(neutral_path),
+    ).as_forget_retain(seed=seed)
     forget, retain = data["forget"], data["retain"]
     if max_len and max_len > 0:
         forget = [s for s in forget if len(s) <= max_len]
@@ -231,7 +247,12 @@ class RMUMethod(Method):
             )
 
         forget_data, retain_data = _build_rmu_data(
-            concept, cfg.min_len, cfg.max_len, cfg.batch_size, int(common.seed),
+            concept,
+            cfg.min_len,
+            cfg.max_len,
+            cfg.batch_size,
+            seed=int(common.seed),
+            neutral_path=common.neutral_path,
         )
 
         layer_ids = [int(x) for x in str(hp["layer_ids"]).split(",")]

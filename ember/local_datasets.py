@@ -6,6 +6,17 @@ from typing import List, Dict, Any, Optional, Tuple
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT_DIR / "data"
+DEFAULT_NEUTRAL_PATH = DATA_DIR / "neutral_sentences.json"
+
+
+def resolve_neutral_path(path: Path | str | None = None) -> Path:
+    """Return the retain-corpus JSON path (repo-relative paths allowed)."""
+    if path is None or str(path).strip() == "":
+        return DEFAULT_NEUTRAL_PATH
+    p = Path(path)
+    if not p.is_absolute():
+        p = ROOT_DIR / p
+    return p
 
 
 def _load_json(path: Path | str) -> Any:
@@ -43,7 +54,7 @@ class ConceptDataset:
             self,
             concept_name: str,
             concept_path: Path | str = DATA_DIR / "concept_sentences.json",
-            neutral_path: Path | str = DATA_DIR / "neutral_sentences.json",
+            neutral_path: Path | str = DEFAULT_NEUTRAL_PATH,
             neutral_sample_seed: Optional[int] = None,
     ) -> None:
         self.concept_name = concept_name

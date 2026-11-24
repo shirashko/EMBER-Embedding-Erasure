@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from ember.erasure.io import ROOT_DIR
+from ember.local_datasets import resolve_neutral_path
 
 METHODS = ("snmf", "rmu", "crisp", "ember", "pisces")
 TRAIN_EVAL_MODES = ("mc", "open")
@@ -178,6 +179,7 @@ class RunConfig:
     final_test_only: bool = False
     run_tests_after_train: bool = True
     features_source: str = "hf"  # "hf": download features from the HF dataset; "local": read mf_outputs/ as-is
+    neutral_path: str = "data/neutral_sentences.json"
 
     ember_step: EMBERStepConfig = field(default_factory=EMBERStepConfig)
     selection: SelectionConfig = field(default_factory=SelectionConfig)
@@ -210,6 +212,9 @@ class RunConfig:
         _require_gemini_for_open_eval(self.train_eval)
         if not self.concepts:
             raise ValueError("RunConfig.concepts is empty (pass --concepts on CLI)")
+        neutral = resolve_neutral_path(self.neutral_path)
+        if not neutral.is_file():
+            raise ValueError(f"neutral_path not found: {neutral}")
         if self.rank <= 0:
             raise ValueError(f"rank must be positive, got {self.rank}")
         if self.features_source not in ("hf", "local"):
@@ -322,6 +327,8 @@ def build_parser() -> argparse.ArgumentParser:
                         "ClSu/ember-features dataset, 'local' reads mf_outputs/ as-is.")
     p.add_argument("--skip-llm-judge", action="store_true", default=False,
                    help="Skip Gemini calls for Alpaca and open-QA baselines/eval.")
+    p.add_argument("--neutral-path", type=str, default=None,
+                   help="Retain corpus JSON (default: data/neutral_sentences.json).")
     return p
 
 
@@ -343,6 +350,8 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
         cfg.features_source = args.features_source
     if args.skip_llm_judge:
         cfg.eval.skip_llm_judge = True
+    if args.neutral_path is not None:
+        cfg.neutral_path = args.neutral_path
     cfg.validate()
     return cfg
 
