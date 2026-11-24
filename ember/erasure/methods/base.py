@@ -149,7 +149,7 @@ class Method(ABC):
         from ember.erasure import io
         if hps_df is None or hps_df.empty:
             return None
-        topk = io.topk_per_concept(hps_df, k=1)
+        topk = io.pick_best_viable_hp_row(hps_df, k=1, primary="harmonic")
         return topk.iloc[0] if not topk.empty else None
 
     def writes_topk_csv(self) -> bool:

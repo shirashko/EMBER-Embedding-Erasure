@@ -448,10 +448,29 @@ def _pick_best_hp_for_test(
 ) -> Optional[Dict[str, Any]]:
     if valid_csv is not None and valid_csv.exists():
         vdf = io.read_csv_safe(valid_csv)
-        if not vdf.empty and "harmonic_alpaca" in vdf.columns:
-            top = io.topk_per_concept(vdf, k=1, primary="harmonic_alpaca")
-            if not top.empty:
-                return top.iloc[0].to_dict()
+        if not vdf.empty:
+            primary = io.resolve_hp_rank_metric(vdf)
+            if primary is not None:
+                viable = io.filter_viable_generation_rows(vdf)
+                excluded = len(vdf) - len(viable)
+                if excluded:
+                    log.info(
+                        "generation guardrail: excluded %d/%d validate rows with "
+                        "qa_invalid or mmlu_invalid > %.2f",
+                        excluded, len(vdf), io.MAX_HP_INVALID_RATE,
+                    )
+                if viable.empty:
+                    log.warning(
+                        "no validate HP rows pass generation guardrail "
+                        "(qa_invalid <= %.2f, mmlu_invalid <= %.2f)",
+                        io.MAX_HP_INVALID_RATE, io.MAX_HP_INVALID_RATE,
+                    )
+                else:
+                    top = io.pick_best_viable_hp_row(
+                        vdf, k=1, primary=primary,
+                    )
+                    if not top.empty:
+                        return top.iloc[0].to_dict()
     df = io.read_csv_safe(hp_csv)
     if df.empty:
         return None

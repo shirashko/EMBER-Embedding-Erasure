@@ -181,6 +181,72 @@ _TIEBREAK_COLS = [
     "layer_lo", "layer_hi", "layer_step",
 ]
 
+# Max invalid-answer rate allowed when picking a best HP for final test.
+# Configs above this on train/validate are treated as corrupted generation.
+MAX_HP_INVALID_RATE = 1.0
+
+
+def filter_viable_generation_rows(
+        df: pd.DataFrame,
+        *,
+        max_invalid: float = MAX_HP_INVALID_RATE,
+) -> pd.DataFrame:
+    """Drop HP rows whose train/validate eval had excessive invalid generations.
+
+    Applies ``qa_invalid`` and/or ``mmlu_invalid`` thresholds only for columns
+    that exist in ``df``. Missing columns are skipped (open eval has no
+    ``qa_invalid`` because answers are not letter-parsed).
+    """
+    if df.empty:
+        return df
+    work = df.copy()
+    invalid_cols = [c for c in ("qa_invalid", "mmlu_invalid") if c in work.columns]
+    if not invalid_cols:
+        return work
+    mask = pd.Series(True, index=work.index)
+    for col in invalid_cols:
+        work[col] = pd.to_numeric(work[col], errors="coerce")
+        mask &= work[col].notna() & (work[col] <= max_invalid)
+    return work.loc[mask].copy()
+
+
+def resolve_hp_rank_metric(df: pd.DataFrame) -> Optional[str]:
+    """Return the primary ranking column for HP selection, if any."""
+    if df.empty:
+        return None
+    if "harmonic_alpaca" in df.columns:
+        harm_alp = pd.to_numeric(df["harmonic_alpaca"], errors="coerce")
+        if harm_alp.notna().any():
+            return "harmonic_alpaca"
+    if "harmonic" in df.columns:
+        harm = pd.to_numeric(df["harmonic"], errors="coerce")
+        if harm.notna().any():
+            return "harmonic"
+    return None
+
+
+def pick_best_viable_hp_row(
+        df: pd.DataFrame,
+        *,
+        k: int = 1,
+        primary: Optional[str] = None,
+        max_invalid: float = MAX_HP_INVALID_RATE,
+) -> pd.DataFrame:
+    """Top-K HP rows by ``primary`` after the generation-validity guardrail."""
+    if df.empty:
+        return df
+    viable = filter_viable_generation_rows(df, max_invalid=max_invalid)
+    if viable.empty:
+        return viable
+    rank_col = primary or resolve_hp_rank_metric(viable)
+    if rank_col is None:
+        return viable.iloc[0:0].copy()
+    if rank_col not in viable.columns:
+        raise ValueError(f"DataFrame missing primary column {rank_col!r}")
+    viable = viable.copy()
+    viable[rank_col] = pd.to_numeric(viable[rank_col], errors="coerce")
+    return topk_per_concept(viable, k=k, primary=rank_col)
+
 
 def topk_per_concept(df: pd.DataFrame, k: int,
                      primary: str = "harmonic") -> pd.DataFrame:
@@ -358,6 +424,9 @@ __all__ = [
     "concept_dir", "baseline_dir",
     "read_csv_safe", "append_csv_row", "save_json_atomic",
     "load_done_set",
+    "MAX_HP_INVALID_RATE",
+    "filter_viable_generation_rows", "resolve_hp_rank_metric",
+    "pick_best_viable_hp_row",
     "topk_per_concept", "write_topk", "pick_best_embed_delta", "load_best_embed_map",
     "ID_COLUMNS", "EMBED_COLUMNS",
     "SNMF_HP_COLUMNS", "RMU_HP_COLUMNS", "CRISP_HP_COLUMNS", "PISCES_HP_COLUMNS",
