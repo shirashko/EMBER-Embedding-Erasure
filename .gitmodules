@@ -9,4 +9,4 @@
 	url = https://github.com/ClarSu/wmdp.git
 [submodule "external/PISCES"]
 	path = external/PISCES
-	url = https://github.com/ClarSu/PISCES.git
+	url = https://github.com/shirashko/PISCES.git
