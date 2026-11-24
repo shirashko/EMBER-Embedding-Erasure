@@ -12,13 +12,15 @@ build/
 *.env
 
 # Model / feature outputs (large, user-generated)
-mf_outputs/
+mf_outputs*/
+unlearned_checkpoints*/
 results/
 *.log
 
 # CRISP SAE caches (downloaded automatically on first run)
 external/CRISP/crisp/gemma_sae_cache/
 external/CRISP/crisp/llama_sae_cache/
+external/CRISP/crisp/qwen_sae_cache/
 
 # Baseline caches (regenerated on first run)
 data/baselines/
@@ -38,3 +40,20 @@ notebooks/.ipynb_checkpoints/
 # Editor
 .vscode/
 .idea/
+
+slurm*/
+
+# WMDP prepared corpora (run scripts/prepare_wmdp_corpora.py)
+data/wmdp/*/
+
+tmp
+
+experiments/crisp_features/*/
+
+outputs/
+
+# Backups written by prepare_*/upsert_* scripts (--backup)
+*.bak
+
+# Ad-hoc report output
+/summary_table.csv
