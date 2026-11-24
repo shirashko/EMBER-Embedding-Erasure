@@ -134,6 +134,9 @@ def _build_rmu_data(
     if max_len and max_len > 0:
         forget = [s for s in forget if len(s) <= max_len]
         retain = [s for s in retain if len(s) <= max_len]
+    if min_len and min_len > 0:
+        forget = [s for s in forget if len(s) >= min_len]
+        retain = [s for s in retain if len(s) >= min_len]
 
     def _batchify(texts: List[str]) -> List[List[str]]:
         return [texts[i:i + batch_size] for i in range(0, len(texts), batch_size)
