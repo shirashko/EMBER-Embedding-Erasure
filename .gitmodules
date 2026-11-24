@@ -3,7 +3,7 @@
 	url = https://github.com/shirashko/snmf-mlp-decomposition.git
 [submodule "external/CRISP"]
 	path = external/CRISP
-	url = https://github.com/ClarSu/CRISP.git
+	url = https://github.com/shirashko/CRISP.git
 [submodule "external/wmdp"]
 	path = external/wmdp
 	url = https://github.com/ClarSu/wmdp.git
