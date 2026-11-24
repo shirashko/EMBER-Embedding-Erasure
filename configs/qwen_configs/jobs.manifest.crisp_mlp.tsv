@@ -1,0 +1,10 @@
+configs/crisp_qwen_mlp.yaml	Ancient Rome	mc	local
+configs/crisp_qwen_mlp.yaml	Golf	mc	local
+configs/crisp_qwen_mlp.yaml	Culture of Greece	mc	local
+configs/crisp_qwen_mlp.yaml	Uranium	mc	local
+configs/crisp_qwen_mlp.yaml	Cannabis	mc	local
+configs/crisp_qwen_mlp.yaml	Baseball	mc	local
+configs/crisp_qwen_mlp.yaml	Gambling	mc	local
+configs/crisp_qwen_mlp_wmdp_short.yaml	wmdp-bio	mc	local
+configs/crisp_qwen_mlp_wmdp_short.yaml	wmdp-cyber	mc	local
+configs/crisp_qwen_mlp.yaml	Republic of Ireland	mc	local

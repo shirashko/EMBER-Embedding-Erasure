@@ -37,6 +37,9 @@ LLAMA_LAYER_RANGES_OUT: List[Tuple[int, int]] = [(0, 10), (11, 21), (16, 31)]
 
 QWEN_LAYER_RANGES_IN: List[Tuple[int, int]]  = [(0, 23), (0, 7), (0, 12)]
 QWEN_LAYER_RANGES_OUT: List[Tuple[int, int]] = [(0, 7), (8, 16), (12, 23)]
+# Opt-in down_proj spans. Same coverage the up side already has. They are
+# not part of the default grid, so an unset layer_ranges_out stays 144 cells.
+QWEN_LAYER_RANGES_OUT_EXTRA: List[Tuple[int, int]] = [(0, 12), (0, 23)]
 
 
 def _layer_ranges(model_name: str) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
@@ -49,11 +52,15 @@ def _layer_ranges(model_name: str) -> Tuple[List[Tuple[int, int]], List[Tuple[in
 
 
 def _allowed_layer_ranges(model_name: str, side: str) -> List[Tuple[int, int]]:
-    """Ranges a config may set for one side of the grid."""
+    """Ranges a config may set. Defaults plus Qwen out-spans that must be requested."""
     default_in, default_out = _layer_ranges(model_name)
     if side == "in":
         return list(default_in)
     allowed = list(default_out)
+    if "qwen" in model_name.lower():
+        for span in QWEN_LAYER_RANGES_OUT_EXTRA:
+            if span not in allowed:
+                allowed.append(span)
     return allowed
 
 

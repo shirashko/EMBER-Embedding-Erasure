@@ -1,0 +1,54 @@
+# SNMF down_proj-only erasure on Qwen3.5-2B.
+#
+# 12 cells: 4 out_deltas × 3 out-ranges. up_proj is not edited (w_mode: out).
+# The out-ranges are the spans the default grid already uses for up_proj:
+# (0, 7), (0, 12), (0, 23). (0, 12) and (0, 23) are opt-in; they are not
+# added to the default 144-cell grid in configs/snmf_qwen.yaml.
+#
+# Grid logs and checkpoints both go under unlearned_checkpoints_snmf_down/
+# so results/snmf/... and unlearned_checkpoints/ are left untouched.
+# Seed stays 42 so the existing rank-100 MLP features are reused.
+#
+# Full set (tasks 0-2 already finished):
+#   RUNNER=scripts/run_wmdp_unlearning.sh \
+#   MANIFEST=configs/qwen_configs/jobs.manifest.snmf_down.tsv \
+#   CHECKPOINT_ROOT=unlearned_checkpoints_snmf_down \
+#     sbatch --array=3-9 scripts/slurm/ember_array.slurm
+
+method: snmf
+model_name: Qwen/Qwen3.5-2B
+rank: 100
+seed: 42
+topk: 12
+run_tests_after_train: true
+features_source: local
+results_root: unlearned_checkpoints_snmf_down
+
+selection:
+  ratio_thresh: 2.0
+  coverage_thresh: 0.95
+
+ember_step:
+  enabled: false
+
+snmf:
+  w_mode: out
+  feature_source: all
+  in_deltas: [0.0]
+  out_deltas: [1.0, 4.0, 7.0, 10.0]
+  layer_ranges_out: [[0, 7], [0, 12], [0, 23]]
+  dtype: bf16
+
+eval:
+  alpaca: false
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints_snmf_down

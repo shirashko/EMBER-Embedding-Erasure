@@ -1,0 +1,4 @@
+configs/rmu_gemma_soft_cyber.yaml	wmdp-cyber	mc	local
+configs/snmf_gemma_soft_cyber.yaml	wmdp-cyber	mc	local
+configs/rmu_qwen_soft_cyber.yaml	wmdp-cyber	mc	local
+configs/snmf_qwen_soft_cyber.yaml	wmdp-cyber	mc	local
