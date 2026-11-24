@@ -7,7 +7,7 @@
 # Environment (sbatch forwards the submitting shell's environment):
 #   MANIFEST         required. jobs.manifest*.tsv, absolute or relative to EMBER_ROOT.
 #   RUNNER           required. Runner script for that manifest, relative to EMBER_ROOT:
-#                      scripts/reproduce_unlearning.sh        reproduce_optimal_configs/jobs.manifest.tsv
+#                      scripts/reproduce_unlearning.sh        reproduce_optimal_configs/jobs.manifest*.tsv
 #                      scripts/run_wmdp_unlearning.sh         WMDP, Qwen and experiment unlearning manifests
 #                      scripts/run_wmdp_train_mf_features.sh  *train_mf_features.tsv manifests
 #   EMBER_ROOT       repository checkout. Defaults to the sbatch submit directory.
@@ -70,12 +70,9 @@ if [[ ! -x "${EMBER_ROOT}/${RUNNER}" ]]; then
     exit 1
 fi
 
-# reproduce_unlearning.sh always reads the default reproduce manifest and ignores
-# MANIFEST, so refuse any other manifest instead of silently running other rows.
-REPRODUCE_MANIFEST="${EMBER_ROOT}/configs/reproduce_optimal_configs/jobs.manifest.tsv"
-if [[ "${RUNNER}" == *reproduce_unlearning.sh && "${MANIFEST}" != "${REPRODUCE_MANIFEST}" ]]; then
-    echo "scripts/reproduce_unlearning.sh only supports ${REPRODUCE_MANIFEST}" >&2
-    exit 1
+# reproduce_unlearning.sh reads its manifest from REPRODUCE_MANIFEST.
+if [[ "${RUNNER}" == *reproduce_unlearning.sh ]]; then
+    export REPRODUCE_MANIFEST="${MANIFEST}"
 fi
 
 ROW="$(awk -v n="$((SLURM_ARRAY_TASK_ID + 1))" 'NR == n { print; exit }' "${MANIFEST}")"

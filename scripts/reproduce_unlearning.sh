@@ -4,6 +4,11 @@
 # Usage:
 #   ./scripts/reproduce_unlearning.sh [task_index]
 #   SLURM_ARRAY_TASK_ID=3 ./scripts/reproduce_unlearning.sh
+#   REPRODUCE_MANIFEST=configs/reproduce_optimal_configs/jobs.manifest.rmu.gemma.tsv \
+#       ./scripts/reproduce_unlearning.sh 0
+#
+# REPRODUCE_MANIFEST selects another manifest (absolute or relative to the repo
+# root); default configs/reproduce_optimal_configs/jobs.manifest.tsv.
 #
 # Prereqs:
 #   - configs/reproduce_optimal_configs/jobs.manifest.tsv
@@ -25,7 +30,10 @@ _has_gemini_key() {
 
 TASK_ID="${1:-${SLURM_ARRAY_TASK_ID:-0}}"
 
-MANIFEST="${REPO_ROOT}/configs/reproduce_optimal_configs/jobs.manifest.tsv"
+MANIFEST="${REPRODUCE_MANIFEST:-${REPO_ROOT}/configs/reproduce_optimal_configs/jobs.manifest.tsv}"
+if [[ "$MANIFEST" != /* ]]; then
+    MANIFEST="${REPO_ROOT}/${MANIFEST}"
+fi
 if [[ ! -f "$MANIFEST" ]]; then
     echo "Missing manifest: $MANIFEST" >&2
     echo "Run: python scripts/generate_reproduce_configs.py" >&2
@@ -69,6 +77,7 @@ echo "================================================================"
 echo " reproduce_unlearning | job=${SLURM_JOB_ID:-local} task=${TASK_ID}"
 echo " Node:     ${SLURMD_NODENAME:-local}"
 echo " Repo:     $REPO_ROOT"
+echo " Manifest: $MANIFEST"
 echo " Config:   $CONFIG"
 echo " Concept:  $CONCEPT"
 echo " Eval:     $TRAIN_EVAL"

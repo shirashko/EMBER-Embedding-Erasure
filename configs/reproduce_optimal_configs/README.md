@@ -80,8 +80,8 @@ sbatch --array=0-$((N - 1)) \
 
 Run a single config (example: first manifest entry) with `--array=0`.
 
-`scripts/reproduce_unlearning.sh` always reads this manifest; the template refuses
-any other `MANIFEST` with that runner.
+Another reproduce manifest (e.g. `jobs.manifest.rmu.gemma.tsv`) works the same way:
+set `MANIFEST` to it; the template passes it to the runner as `REPRODUCE_MANIFEST`.
 
 Logs: `slurm_outputs/ember_array_<job>_<task>.out` and `slurm_errors/`.
 Checkpoints: `unlearned_checkpoints/<method>/<model>/<concept>/`.
