@@ -26,7 +26,7 @@ snmf:
   dtype: bf16
 
 eval:
-  alpaca: true
+  alpaca: false
   min_mmlu: 0.7
   max_qa_acc: 0.6
 
