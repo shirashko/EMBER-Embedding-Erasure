@@ -1,6 +1,6 @@
 [submodule "external/snmf"]
 	path = external/snmf
-	url = https://github.com/ordavid-s/snmf-mlp-decomposition.git
+	url = https://github.com/shirashko/snmf-mlp-decomposition.git
 [submodule "external/CRISP"]
 	path = external/CRISP
 	url = https://github.com/ClarSu/CRISP.git
