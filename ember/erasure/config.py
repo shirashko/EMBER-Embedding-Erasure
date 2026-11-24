@@ -171,6 +171,7 @@ class RunConfig:
     seed: int = 42
     topk: int = 20
     overwrite: bool = False
+    final_test_only: bool = False
     run_tests_after_train: bool = True
     features_source: str = "hf"  # "hf": download features from the HF dataset; "local": read mf_outputs/ as-is
 
@@ -295,6 +296,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Override the config's seed.")
     p.add_argument("--overwrite", action="store_true", default=False,
                    help="Re-run cells already present in the HP CSV.")
+    p.add_argument("--final-test-only", action="store_true", default=False,
+                   help="Skip grid and validate; re-pick best HP and run final test.")
     p.add_argument("--rank", type=int, default=None,
                    help="Override the config's rank.")
     p.add_argument("--features-source", choices=["hf", "local"], default=None,
@@ -315,6 +318,8 @@ def parse_args(argv: Optional[List[str]] = None) -> RunConfig:
         cfg.seed = args.seed
     if args.overwrite:
         cfg.overwrite = True
+    if args.final_test_only:
+        cfg.final_test_only = True
     if args.rank is not None:
         cfg.rank = args.rank
     if args.features_source is not None:

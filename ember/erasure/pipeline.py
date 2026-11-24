@@ -98,13 +98,16 @@ def run(cfg: RunConfig) -> None:
     baselines = _compute_all_baselines(cfg, hf_model, tokenizer, alpaca_bs)
     best_embed_map = _resolve_ember_step(cfg, hf_model, tokenizer, baselines, alpaca_bs)
 
-    with log.stage("grid"):
-        _run_method_grid(method, cfg, hf_model, tokenizer,
-                         baselines, best_embed_map, alpaca_bs)
+    if not cfg.final_test_only:
+        with log.stage("grid"):
+            _run_method_grid(method, cfg, hf_model, tokenizer,
+                             baselines, best_embed_map, alpaca_bs)
 
-    with log.stage("validate"):
-        _run_validate_topk(method, cfg, hf_model, tokenizer,
-                           baselines, best_embed_map, alpaca_bs)
+        with log.stage("validate"):
+            _run_validate_topk(method, cfg, hf_model, tokenizer,
+                               baselines, best_embed_map, alpaca_bs)
+    else:
+        log.info("final_test_only=true: skipping grid and validate stages")
 
     if cfg.run_tests_after_train:
         with log.stage("final_test"):
