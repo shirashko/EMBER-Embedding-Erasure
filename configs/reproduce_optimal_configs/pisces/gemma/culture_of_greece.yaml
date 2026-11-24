@@ -1,0 +1,35 @@
+# Reproduce optimal unlearning: Gemma / PISCES / Culture of Greece
+#
+# Usage:
+#   python -m ember.run_erasure --config configs/reproduce_optimal_configs/pisces/gemma/culture_of_greece.yaml \
+#       --concepts "Culture of Greece" --train-eval open \
+#       --features-source local
+
+method: pisces
+model_name: google/gemma-2-2b-it
+rank: 100
+seed: 42
+topk: 1
+run_tests_after_train: true
+features_source: local
+selection:
+  ratio_thresh: 2.0
+ember_step:
+  enabled: false
+pisces:
+  ks:
+  - 0.5
+  values:
+  - 13.0
+  dtype: bf16
+eval:
+  alpaca: false
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints
