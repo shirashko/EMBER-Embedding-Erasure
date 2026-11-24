@@ -31,10 +31,15 @@ from ember.erasure.methods.base import Method, register
 # Per-model layer ranges (lo, hi) used by the SNMF grid.
 GEMMA_LAYER_RANGES_IN: List[Tuple[int, int]]  = [(0, 25), (0, 8), (0, 12)]
 GEMMA_LAYER_RANGES_OUT: List[Tuple[int, int]] = [(0, 8), (9, 17), (13, 25)]
+
 LLAMA_LAYER_RANGES_IN: List[Tuple[int, int]]  = [(0, 31), (0, 10), (0, 16)]
 LLAMA_LAYER_RANGES_OUT: List[Tuple[int, int]] = [(0, 10), (11, 21), (16, 31)]
+
 QWEN_LAYER_RANGES_IN: List[Tuple[int, int]]  = [(0, 23), (0, 7), (0, 12)]
 QWEN_LAYER_RANGES_OUT: List[Tuple[int, int]] = [(0, 7), (8, 16), (12, 23)]
+# Opt-in down_proj spans. Same coverage the up side already has. They are
+# not part of the default grid, so an unset layer_ranges_out stays 144 cells.
+QWEN_LAYER_RANGES_OUT_EXTRA: List[Tuple[int, int]] = [(0, 12), (0, 23)]
 
 
 def _layer_ranges(model_name: str) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
@@ -46,6 +51,19 @@ def _layer_ranges(model_name: str) -> Tuple[List[Tuple[int, int]], List[Tuple[in
     return GEMMA_LAYER_RANGES_IN, GEMMA_LAYER_RANGES_OUT
 
 
+def _allowed_layer_ranges(model_name: str, side: str) -> List[Tuple[int, int]]:
+    """Ranges a config may set. Defaults plus Qwen out-spans that must be requested."""
+    default_in, default_out = _layer_ranges(model_name)
+    if side == "in":
+        return list(default_in)
+    allowed = list(default_out)
+    if "qwen" in model_name.lower():
+        for span in QWEN_LAYER_RANGES_OUT_EXTRA:
+            if span not in allowed:
+                allowed.append(span)
+    return allowed
+
+
 def validate_layer_ranges_side(
     ranges: List[Tuple[int, int]] | List[List[int]],
     model_name: str,
@@ -55,8 +73,7 @@ def validate_layer_ranges_side(
     """Ensure each ``(layer_lo, layer_hi)`` is a valid SNMF grid range."""
     if side not in ("in", "out"):
         raise ValueError(f"side must be 'in' or 'out', got {side!r}")
-    default_in, default_out = _layer_ranges(model_name)
-    allowed = set(default_in if side == "in" else default_out)
+    allowed = set(_allowed_layer_ranges(model_name, side))
     normalized = [tuple(int(x) for x in r) for r in ranges]
     invalid = [r for r in normalized if r not in allowed]
     if invalid:

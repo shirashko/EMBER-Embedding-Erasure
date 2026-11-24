@@ -2,7 +2,9 @@
 
 The directory layout for every method is::
 
-    results/<method[_ef]>/<model_safe>/rank<R>/seed<S>/
+    <results_base>/<method[_ef]>/<model_safe>/rank<R>/seed<S>/
+
+``results_base`` is ``results/`` unless a config sets ``results_root``.
         train_<mode>/
             best_embed.csv              # best EMBER delta per concept
             <concept_safe>/
@@ -49,25 +51,44 @@ def method_dir_name(method: str, embed_step_enabled: bool) -> str:
     return f"{name}_ef"
 
 
+def results_base(results_root: Optional[str] = None) -> Path:
+    """Directory that holds ``<method>/<model>/rank<R>/seed<S>``.
+
+    ``None`` or ``""`` keeps the historical ``results/`` tree. A relative
+    ``results_root`` is resolved from the repo root.
+    """
+    if results_root is None or str(results_root).strip() == "":
+        return RESULTS_DIR
+    root = Path(results_root)
+    if not root.is_absolute():
+        root = ROOT_DIR / root
+    return root
+
+
 def run_root(method: str, model_name: str, rank: int, seed: int,
-             embed_step_enabled: bool = False) -> Path:
-    """``results/<method[_ef]>/<model_safe>/rank<R>/seed<S>``."""
-    return (RESULTS_DIR / method_dir_name(method, embed_step_enabled)
+             embed_step_enabled: bool = False,
+             results_root: Optional[str] = None) -> Path:
+    """``<results_base>/<method[_ef]>/<model_safe>/rank<R>/seed<S>``."""
+    return (results_base(results_root) / method_dir_name(method, embed_step_enabled)
             / _safe_model_name(model_name)
             / f"rank{rank}"
             / f"seed{seed}")
 
 
 def train_dir(method: str, model_name: str, rank: int, seed: int,
-              train_eval: str, embed_step_enabled: bool = False) -> Path:
+              train_eval: str, embed_step_enabled: bool = False,
+              results_root: Optional[str] = None) -> Path:
     """Directory holding train-time grid/validate outputs."""
-    return run_root(method, model_name, rank, seed, embed_step_enabled) / f"train_{train_eval}"
+    return run_root(method, model_name, rank, seed, embed_step_enabled,
+                    results_root) / f"train_{train_eval}"
 
 
 def test_dir(method: str, model_name: str, rank: int, seed: int,
-             train_eval: str, embed_step_enabled: bool = False) -> Path:
+             train_eval: str, embed_step_enabled: bool = False,
+             results_root: Optional[str] = None) -> Path:
     """Directory holding final-test outputs."""
-    return run_root(method, model_name, rank, seed, embed_step_enabled) / f"test_{train_eval}"
+    return run_root(method, model_name, rank, seed, embed_step_enabled,
+                    results_root) / f"test_{train_eval}"
 
 
 def concept_dir(parent: Path, concept: str) -> Path:

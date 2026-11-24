@@ -211,18 +211,41 @@ def _dump_crisp_features(
     return out_path
 
 
+def _cap_text_len(texts: List[str], truncate_len: int) -> Tuple[List[str], int]:
+    """Cut texts to ``truncate_len`` characters. 0 leaves them unchanged."""
+    if not truncate_len or truncate_len <= 0:
+        return texts, 0
+    capped: List[str] = []
+    n_cut = 0
+    for text in texts:
+        if len(text) > truncate_len:
+            capped.append(text[:truncate_len].rstrip())
+            n_cut += 1
+        else:
+            capped.append(text)
+    return capped, n_cut
+
+
 def _build_crisp_data(
         concept_name: str,
         max_len: int,
         seed: int,
         *,
         neutral_path: str,
+        truncate_len: int = 0,
 ):
     data = ConceptDataset(
         concept_name,
         neutral_path=resolve_neutral_path(neutral_path),
     ).as_forget_retain(seed=seed)
     forget, retain = data["forget"], data["retain"]
+    forget, n_forget = _cap_text_len(forget, truncate_len)
+    retain, n_retain = _cap_text_len(retain, truncate_len)
+    if truncate_len and truncate_len > 0:
+        log.info(
+            "CRISP: truncated %d forget and %d retain texts to %d characters",
+            n_forget, n_retain, truncate_len,
+        )
     if max_len and max_len > 0:
         forget = [s for s in forget if len(s) <= max_len]
         retain = [s for s in retain if len(s) <= max_len]
@@ -281,8 +304,11 @@ class CRISPMethod(Method):
             self._saes_downloaded = True
 
         max_len = common.crisp.max_len if hasattr(common.crisp, "max_len") else 2000
+        truncate_len = int(getattr(common.crisp, "truncate_len", 0) or 0)
         self._forget, self._retain = _build_crisp_data(
-            concept, max_len, int(common.seed), neutral_path=common.neutral_path,
+            concept, max_len, int(common.seed),
+            neutral_path=common.neutral_path,
+            truncate_len=truncate_len,
         )
         log.info("CRISP: retain corpus -> %s", resolve_neutral_path(common.neutral_path))
         self._coher = _load_coherency_prompts(concept)
@@ -375,12 +401,14 @@ class CRISPMethod(Method):
             beta=common.crisp.beta,
             gamma=common.crisp.gamma,
             lora_rank=int(hp["lora_rank"]),
+            lora_targets=common.crisp.lora_targets,
             save_model=False,
             verbose=None,
             coherency_prompts=self._coher,
         )
-        log.info("CRISP: unlearn_lora (k=%d alpha=%g lr=%g range=%s)",
-                 hp["k_features"], hp["alpha"], hp["lr"], layer_range)
+        log.info("CRISP: unlearn_lora (k=%d alpha=%g lr=%g range=%s lora_targets=%s)",
+                 hp["k_features"], hp["alpha"], hp["lr"], layer_range,
+                 common.crisp.lora_targets)
         # Qwen3.5 DeltaNet state must not be cached while LoRA backprop runs.
         if is_qwen(common.model_name):
             self._crisp.model.config.use_cache = False

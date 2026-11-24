@@ -118,7 +118,8 @@ def run(cfg: RunConfig) -> None:
     use_embed_suffix = (method.name != "ember") and bool(cfg.ember_step.enabled)
     _write_timing_json(
         io.run_root(method.name, cfg.model_name, cfg.rank, cfg.seed,
-                    embed_step_enabled=use_embed_suffix),
+                    embed_step_enabled=use_embed_suffix,
+                    results_root=cfg.results_root or None),
         cfg, method.name)
     log.info("pipeline complete")
 
@@ -269,7 +270,8 @@ def _run_method_grid(method: methods_base.Method, cfg: RunConfig,
     use_embed_suffix = (method.name != "ember") and bool(cfg.ember_step.enabled)
     out_dir = io.train_dir(method.name, cfg.model_name, cfg.rank,
                            cfg.seed, cfg.train_eval,
-                           embed_step_enabled=use_embed_suffix)
+                           embed_step_enabled=use_embed_suffix,
+                           results_root=cfg.results_root or None)
 
     method_is_ember = method.name == "ember"
     snap = None if method.requires_full_reload else method.snapshot(hf_model)
@@ -353,7 +355,8 @@ def _run_validate_topk(method: methods_base.Method, cfg: RunConfig,
     use_embed_suffix = (method.name != "ember") and bool(cfg.ember_step.enabled)
     out_dir = io.train_dir(method.name, cfg.model_name, cfg.rank,
                            cfg.seed, cfg.train_eval,
-                           embed_step_enabled=use_embed_suffix)
+                           embed_step_enabled=use_embed_suffix,
+                           results_root=cfg.results_root or None)
 
     snap = None if method.requires_full_reload else method.snapshot(hf_model)
 
@@ -535,10 +538,12 @@ def _run_final_test(method: methods_base.Method, cfg: RunConfig,
     use_embed_suffix = (method.name != "ember") and bool(cfg.ember_step.enabled)
     train_out_dir = io.train_dir(method.name, cfg.model_name, cfg.rank,
                                  cfg.seed, cfg.train_eval,
-                                 embed_step_enabled=use_embed_suffix)
+                                 embed_step_enabled=use_embed_suffix,
+                                 results_root=cfg.results_root or None)
     test_out_dir = io.test_dir(method.name, cfg.model_name, cfg.rank,
                                cfg.seed, cfg.train_eval,
-                               embed_step_enabled=use_embed_suffix)
+                               embed_step_enabled=use_embed_suffix,
+                               results_root=cfg.results_root or None)
     test_out_dir.mkdir(parents=True, exist_ok=True)
 
     final_mc = test_out_dir / "final_test_mc.csv"

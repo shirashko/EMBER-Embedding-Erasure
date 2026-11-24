@@ -12,6 +12,24 @@ from ember.erasure.config import RunConfig
 from ember.utils import _safe_concept, _safe_model_name
 
 
+def _json_ready(value: Any) -> Any:
+    """Replace NaN and ±Infinity with null so dumps are strict JSON."""
+    if isinstance(value, dict):
+        return {k: _json_ready(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_ready(v) for v in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
+
+
+def _write_json(path: Path, payload: Any) -> None:
+    path.write_text(
+        json.dumps(_json_ready(payload), indent=2, sort_keys=True, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+
+
 def checkpoint_dir(cfg: RunConfig, concept: str) -> Path:
     """``<root>/<method>/<model>/<concept>/`` under the repo unless ``root`` is absolute."""
     use_embed_suffix = (cfg.method != "ember") and bool(cfg.ember_step.enabled)
@@ -60,10 +78,7 @@ def save_unlearned_checkpoint(
         "train_eval": cfg.train_eval,
         "hyperparameters": hyperparameters or {},
     }
-    (out_dir / "unlearned_checkpoints.json").write_text(
-        json.dumps(meta, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    _write_json(out_dir / "unlearned_checkpoints.json", meta)
     return out_dir
 
 
@@ -401,10 +416,7 @@ def save_checkpoint_evaluation_data(
             "baseline_dir": str(io.baseline_dir(cfg.model_name)),
         },
     }
-    (eval_dir / "evaluation_summary.json").write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
+    _write_json(eval_dir / "evaluation_summary.json", summary)
     _write_score_comparison_csv(
         eval_dir,
         train_eval=cfg.train_eval,

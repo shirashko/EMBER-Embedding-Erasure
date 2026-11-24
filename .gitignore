@@ -49,3 +49,5 @@ data/wmdp/*/
 tmp
 
 experiments/crisp_features/*/
+
+outputs/frozen_snmf_scores/

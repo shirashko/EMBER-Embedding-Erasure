@@ -1,0 +1,51 @@
+# CRISP on Qwen3.5-2B, LoRA restricted to the MLP.
+#
+# down_proj, gate_proj, and up_proj are trained. Attention (q/k/v/o) and
+# DeltaNet (in_proj_qkv, in_proj_z, in_proj_b, in_proj_a, out_proj) are not.
+# The layer grid and the SAE loss are the same as configs/crisp_qwen.yaml.
+# An unset lora_targets stays "all", so that config is unchanged.
+#
+# Checkpoints and grid logs go under unlearned_checkpoints_crisp_mlp/.
+#   sbatch --array=0-9 slurm/run_qwen_crisp_mlp.slurm
+
+method: crisp
+model_name: Qwen/Qwen3.5-2B
+rank: 100
+seed: 42
+topk: 15
+run_tests_after_train: true
+results_root: unlearned_checkpoints_crisp_mlp
+
+selection:
+  ratio_thresh: 2.0
+
+ember_step:
+  enabled: false
+
+crisp:
+  k_features_grid: [5, 10, 20]
+  alpha_grid: [5.0, 10.0, 20.0, 50.0]
+  lr_grid: [5.0e-5, 1.0e-4, 5.0e-4]
+  batch_size: 16
+  num_epochs: 2
+  lora_batch_size: 16
+  beta: 0.99
+  gamma: 0.01
+  lora_rank: 4
+  lora_targets: mlp
+  sae_cache: qwen_sae_cache
+  max_len: 2000
+
+eval:
+  alpaca: false
+  min_mmlu: 0.7
+  max_qa_acc: 0.6
+
+relearning:
+  enabled: true
+  max_paragraphs: 100
+  csv_path: data/relearn_paragraphs.json
+
+checkpoint:
+  enabled: true
+  root: unlearned_checkpoints_crisp_mlp

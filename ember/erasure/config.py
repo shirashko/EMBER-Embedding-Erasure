@@ -120,6 +120,12 @@ class CRISPGridConfig:
     lora_rank: int = 4
     sae_cache: str = "gemma_sae_cache"
     max_len: int = 2000
+    # 0 keeps each sentence whole. A positive value cuts forget and retain
+    # texts to this many characters before the max_len filter.
+    truncate_len: int = 0
+    # "all" keeps attention and, on Qwen3.5, DeltaNet.
+    # "mlp" edits down/gate/up. "down" edits down_proj only.
+    lora_targets: str = "all"
 
 
 @dataclass
@@ -188,6 +194,8 @@ class RunConfig:
     run_tests_after_train: bool = True
     features_source: str = "hf"  # "hf": download features from the HF dataset; "local": read mf_outputs/ as-is
     neutral_path: str = "data/neutral_sentences.json"
+    # Empty keeps grid logs under results/. A relative path is resolved from the repo root.
+    results_root: str = ""
 
     ember_step: EMBERStepConfig = field(default_factory=EMBERStepConfig)
     selection: SelectionConfig = field(default_factory=SelectionConfig)
@@ -234,9 +242,20 @@ class RunConfig:
             raise ValueError("Use at most one of selection.neurons_thresh / coverage_thresh")
         if self.method == "ember" and self.ember_step.enabled:
             self.ember_step.enabled = False
-        if self.method == "crisp" and self.crisp.layer_ranges is not None:
-            from ember.erasure.methods.crisp import validate_layer_ranges
-            validate_layer_ranges(self.crisp.layer_ranges, self.model_name)
+        if self.method == "crisp":
+            if self.crisp.lora_targets not in ("all", "mlp", "down"):
+                raise ValueError(
+                    "crisp.lora_targets must be 'all', 'mlp', or 'down', "
+                    f"got {self.crisp.lora_targets!r}"
+                )
+            if self.crisp.truncate_len < 0:
+                raise ValueError(
+                    "crisp.truncate_len must be >= 0, "
+                    f"got {self.crisp.truncate_len}"
+                )
+            if self.crisp.layer_ranges is not None:
+                from ember.erasure.methods.crisp import validate_layer_ranges
+                validate_layer_ranges(self.crisp.layer_ranges, self.model_name)
         if self.method == "rmu" and self.rmu.update_settings is not None:
             from ember.erasure.methods.rmu import validate_update_settings
             validate_update_settings(self.rmu.update_settings, self.model_name)
