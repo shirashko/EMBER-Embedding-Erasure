@@ -59,6 +59,7 @@ def evaluate_model_for_mode(
         custom_indices_mmlu: Optional[List[int]] = None,
         dynamic_baselines: Optional[Dict[str, Any]] = None,
         alpaca_batch_size: int = 32,
+        skip_llm_judge: bool = False,
 ) -> Tuple[Dict[str, float], Dict[str, List[Dict[str, Any]]]]:
     """Full eval for one (model, concept, mode). Returns ``(metrics, records_by_set)``.
 
@@ -70,7 +71,10 @@ def evaluate_model_for_mode(
         raise ValueError(f"Unknown mode {mode!r}; expected {VALID_MODES}")
     tm = ensure_wrapped_model(model, tokenizer)
     gem_stats = GeminiTokenStats()
-    evaluator = GeminiEvaluator(token_stats=gem_stats)
+    eval_alpaca = eval_alpaca and not skip_llm_judge
+    needs_gemini = eval_alpaca or (mode.endswith("open") and (eval_qa or eval_simdom)
+                                   and not skip_llm_judge)
+    evaluator = GeminiEvaluator(token_stats=gem_stats) if needs_gemini else None
 
     split = "train" if mode.startswith("train") else "test"
     is_open = mode.endswith("open")
@@ -147,26 +151,34 @@ def evaluate_model_for_mode(
         sim_frac = metrics["simdom_frac"]
 
     if is_open:
-        if eval_qa:
-            qa_acc, qa_frac, _ = _eval_open_set(
-                tm, evaluator, f"qa_{split}", concept_name, qa_base,
-                records_by_set,
-            )
-            metrics["qa_acc"] = qa_acc
-            metrics["qa_frac"] = qa_frac
-            if max_qa_acc is not None and qa_frac > max_qa_acc:
-                for k in ("simdom_acc", "simdom_frac",
-                          "efficacy", "specificity", "harmonic"):
-                    metrics[k] = 0.0
-                return _finalize(metrics, records_by_set, gem_stats)
+        if skip_llm_judge:
+            if eval_qa:
+                metrics["qa_acc"] = float("nan")
+                metrics["qa_frac"] = float("nan")
+            if eval_simdom:
+                metrics["simdom_acc"] = float("nan")
+                metrics["simdom_frac"] = float("nan")
+        else:
+            if eval_qa:
+                qa_acc, qa_frac, _ = _eval_open_set(
+                    tm, evaluator, f"qa_{split}", concept_name, qa_base,
+                    records_by_set,
+                )
+                metrics["qa_acc"] = qa_acc
+                metrics["qa_frac"] = qa_frac
+                if max_qa_acc is not None and qa_frac > max_qa_acc:
+                    for k in ("simdom_acc", "simdom_frac",
+                              "efficacy", "specificity", "harmonic"):
+                        metrics[k] = 0.0
+                    return _finalize(metrics, records_by_set, gem_stats)
 
-        if eval_simdom:
-            sim_acc, sim_frac, _ = _eval_open_set(
-                tm, evaluator, f"simdom_{split}", concept_name, sim_base,
-                records_by_set,
-            )
-            metrics["simdom_acc"] = sim_acc
-            metrics["simdom_frac"] = sim_frac
+            if eval_simdom:
+                sim_acc, sim_frac, _ = _eval_open_set(
+                    tm, evaluator, f"simdom_{split}", concept_name, sim_base,
+                    records_by_set,
+                )
+                metrics["simdom_acc"] = sim_acc
+                metrics["simdom_frac"] = sim_frac
     else:
         if eval_qa:
             qa_acc, qa_frac, qa_invalid_rate = _eval_mc_set(
@@ -190,6 +202,8 @@ def evaluate_model_for_mode(
             metrics["simdom_frac"] = sim_frac
             metrics["simdom_invalid"] = sim_invalid_rate
 
+    qa_frac = float(metrics.get("qa_frac", float("nan")))
+    sim_frac = float(metrics.get("simdom_frac", float("nan")))
     efficacy = 1.0 - qa_frac if np.isfinite(qa_frac) else float("nan")
     specificity = harmonic_mean([mmlu_frac, sim_frac])
     metrics["efficacy"] = efficacy

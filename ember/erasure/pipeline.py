@@ -92,6 +92,8 @@ def run(cfg: RunConfig) -> None:
 
     alpaca_bs = cfg.eval.alpaca_batch_size or _ALPACA_BATCH_SIZE_DEFAULT
     log.info("alpaca_batch_size=%d", alpaca_bs)
+    if cfg.eval.skip_llm_judge:
+        log.info("skip_llm_judge=true: skipping Gemini for Alpaca/open-QA baselines and eval")
 
     baselines = _compute_all_baselines(cfg, hf_model, tokenizer, alpaca_bs)
     best_embed_map = _resolve_ember_step(cfg, hf_model, tokenizer, baselines, alpaca_bs)
@@ -173,6 +175,7 @@ def _compute_all_baselines(cfg: RunConfig, hf_model: Any, tokenizer: Any,
             tokenizer=tokenizer,
             alpaca_batch_size=alpaca_bs,
             required_concepts=cfg.concepts,
+            skip_llm_judge=cfg.eval.skip_llm_judge,
         )
 
     if cfg.run_tests_after_train:
@@ -184,6 +187,7 @@ def _compute_all_baselines(cfg: RunConfig, hf_model: Any, tokenizer: Any,
                     tokenizer=tokenizer,
                     alpaca_batch_size=alpaca_bs,
                     required_concepts=cfg.concepts,
+                    skip_llm_judge=cfg.eval.skip_llm_judge,
                 )
 
     torch.cuda.empty_cache()
@@ -304,6 +308,7 @@ def _run_method_grid(method: methods_base.Method, cfg: RunConfig,
                             mode=train_mode,
                             tokenizer=tokenizer,
                             alpaca_batch_size=alpaca_bs,
+                            skip_llm_judge=cfg.eval.skip_llm_judge,
                             **method.grid_eval_kwargs(cfg),
                         )
                 _t_add(concept, "grid", _t["elapsed"])
@@ -402,7 +407,7 @@ def _run_validate_topk(method: methods_base.Method, cfg: RunConfig,
                             baselines=baselines[train_mode],
                             concept_name=concept,
                             mode=train_mode,
-                            eval_alpaca=True,
+                            eval_alpaca=cfg.eval.alpaca and not cfg.eval.skip_llm_judge,
                             eval_mmlu=False,
                             eval_qa=False,
                             eval_simdom=False,
@@ -411,6 +416,7 @@ def _run_validate_topk(method: methods_base.Method, cfg: RunConfig,
                             max_qa_acc=None,
                             tokenizer=tokenizer,
                             alpaca_batch_size=alpaca_bs,
+                            skip_llm_judge=cfg.eval.skip_llm_judge,
                         )
                 _t_add(concept, "validate", _t["elapsed"])
 
@@ -570,11 +576,12 @@ def _run_final_test(method: methods_base.Method, cfg: RunConfig,
                                 baselines=baselines[mode],
                                 concept_name=concept,
                                 mode=mode,
-                                eval_alpaca=True,
+                                eval_alpaca=cfg.eval.alpaca and not cfg.eval.skip_llm_judge,
                                 min_mmlu=None,
                                 max_qa_acc=None,
                                 tokenizer=tokenizer,
                                 alpaca_batch_size=alpaca_bs,
+                                skip_llm_judge=cfg.eval.skip_llm_judge,
                             )
                     ft_secs += _te["elapsed"]
                     relearn_col = ("relearning_qa_mc" if mode == "test_mc"
@@ -644,6 +651,7 @@ def _run_relearning_and_update(
             eval_alpaca=False, eval_mmlu=False,
             min_mmlu=None, max_qa_acc=None,
             tokenizer=tok, alpaca_batch_size=alpaca_bs,
+            skip_llm_judge=cfg.eval.skip_llm_judge,
         )
         return metrics
 
@@ -667,6 +675,7 @@ def _run_relearning_and_update(
             eval_alpaca=False, eval_mmlu=False,
             min_mmlu=None, max_qa_acc=None,
             tokenizer=tokenizer, alpaca_batch_size=alpaca_bs,
+            skip_llm_judge=cfg.eval.skip_llm_judge,
         )
         relearned_qa[mode] = float(metrics.get("qa_acc", float("nan")))
 

@@ -63,9 +63,47 @@ def _save_sample(set_name: str, model_safe: str,
     print(f"[baseline] saved {k} sampled examples to {out_path}")
 
 
-# ========================================================================== #
-# compute_or_read_baseline                                                    #
-# ========================================================================== #
+def _uses_llm_judge(set_name: str) -> bool:
+    """Return True when baseline computation would call Gemini."""
+    if set_name.startswith("alpaca_"):
+        return True
+    return set_name.endswith("_open")
+
+
+def _placeholder_alpaca_baseline(set_name: str) -> BaselineResult:
+    split = set_name.split("_", 1)[1]
+    return BaselineResult(
+        set_name=set_name,
+        n_questions=0,
+        metrics={"mean_instruct_score": 1.0, "mean_fluency_score": 1.0},
+        meta={"split": split, "num_examples": 0, "total": 0, "placeholder": True},
+    )
+
+
+def _placeholder_open_qa_baseline(
+        set_name: str,
+        *,
+        required_concepts: Optional[List[str]] = None,
+) -> BaselineResult:
+    parts = set_name.split("_")
+    kind, split = parts[0], parts[1]
+    per_concept = {
+        c: {"num_correct": 1, "total": 1, "accuracy": 1.0}
+        for c in (required_concepts or [])
+    }
+    return BaselineResult(
+        set_name=set_name,
+        n_questions=sum(pc["total"] for pc in per_concept.values()),
+        metrics={"overall_accuracy": 1.0 if per_concept else 0.0},
+        meta={
+            "kind": kind,
+            "split": split,
+            "num_correct": sum(pc["num_correct"] for pc in per_concept.values()),
+            "total": sum(pc["total"] for pc in per_concept.values()),
+            "per_concept": per_concept,
+            "placeholder": True,
+        },
+    )
 
 def compute_or_read_baseline(
         model: Any,
@@ -76,6 +114,7 @@ def compute_or_read_baseline(
         sample_fraction: float = 1.0,
         alpaca_batch_size: int = 32,
         required_concepts: Optional[List[str]] = None,
+        skip_llm_judge: bool = False,
 ) -> BaselineResult:
     """Return the baseline result for ``set_name``, reading or computing as needed."""
     tm = ensure_wrapped_model(model, tokenizer)
@@ -103,6 +142,15 @@ def compute_or_read_baseline(
             )
         print(f"[baseline] missing concepts {sorted(missing)} in {set_name}; "
               f"recomputing baseline...")
+
+    if skip_llm_judge and _uses_llm_judge(set_name):
+        if set_name.startswith("alpaca_"):
+            print(f"[baseline] skip_llm_judge: using placeholder for {set_name}")
+            return _placeholder_alpaca_baseline(set_name)
+        print(f"[baseline] skip_llm_judge: using placeholder for {set_name}")
+        return _placeholder_open_qa_baseline(
+            set_name, required_concepts=required_concepts,
+        )
 
     print(f"[baseline] computing baseline for set={set_name}, model={model_name}")
 
@@ -284,6 +332,7 @@ def get_baselines_for_mode(
         tokenizer: Any = None,
         alpaca_batch_size: int = 32,
         required_concepts: Optional[List[str]] = None,
+        skip_llm_judge: bool = False,
 ) -> Dict[str, Any]:
     """Compute (or read) all four baselines for ``mode``.
 
@@ -305,10 +354,12 @@ def get_baselines_for_mode(
     qa_base = compute_or_read_baseline(
         tm, f"qa_{split}_{mode_suffix}",
         out_dir=out_dir_str, required_concepts=required_concepts,
+        skip_llm_judge=skip_llm_judge,
     )
     sim_base = compute_or_read_baseline(
         tm, f"simdom_{split}_{mode_suffix}",
         out_dir=out_dir_str, required_concepts=required_concepts,
+        skip_llm_judge=skip_llm_judge,
     )
     mmlu_base = compute_or_read_baseline(
         tm, f"mmlu_{split}", out_dir=out_dir_str,
@@ -316,6 +367,7 @@ def get_baselines_for_mode(
     alpaca_base = compute_or_read_baseline(
         tm, f"alpaca_{split}", out_dir=out_dir_str,
         alpaca_batch_size=alpaca_batch_size,
+        skip_llm_judge=skip_llm_judge,
     )
 
     mmlu_acc = float(mmlu_base.metrics.get("accuracy_generation", 0.0))
