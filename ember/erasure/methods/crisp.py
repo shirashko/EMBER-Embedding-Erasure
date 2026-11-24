@@ -58,6 +58,29 @@ def _layer_ranges(model_name: str) -> List[Tuple[int, int, int]]:
     return LLAMA_LAYER_RANGES if "llama" in model_name.lower() else GEMMA_LAYER_RANGES
 
 
+def validate_layer_ranges(
+    ranges: List[Tuple[int, int, int]] | List[List[int]],
+    model_name: str,
+) -> List[Tuple[int, int, int]]:
+    """Ensure each ``(layer_lo, layer_hi, layer_step)`` is a valid CRISP grid range."""
+    allowed = set(_layer_ranges(model_name))
+    normalized = [tuple(int(x) for x in r) for r in ranges]
+    invalid = [r for r in normalized if r not in allowed]
+    if invalid:
+        raise ValueError(
+            f"Invalid CRISP layer_ranges {invalid} for {model_name!r}; "
+            f"allowed: {sorted(allowed)}"
+        )
+    return normalized
+
+
+def resolve_layer_ranges(cfg: Any, model_name: str) -> List[Tuple[int, int, int]]:
+    """Return configured layer ranges, or the model defaults when unset."""
+    if cfg.layer_ranges is None:
+        return _layer_ranges(model_name)
+    return validate_layer_ranges(cfg.layer_ranges, model_name)
+
+
 def _load_coherency_prompts(concept_name: str) -> List[str]:
     if not COHER_PROMPTS_PATH.exists():
         raise FileNotFoundError(f"Missing coherency prompts JSON: {COHER_PROMPTS_PATH}")
@@ -130,7 +153,8 @@ class CRISPMethod(Method):
     # ------------------------------------------------------------------ #
     def enumerate_hps(self, common: RunConfig) -> Iterable[Dict[str, Any]]:
         cfg = common.crisp
-        for (lo, hi, step) in _layer_ranges(common.model_name):
+        ranges = resolve_layer_ranges(cfg, common.model_name)
+        for (lo, hi, step) in ranges:
             for k in cfg.k_features_grid:
                 for alpha in cfg.alpha_grid:
                     for lr in cfg.lr_grid:
@@ -157,8 +181,8 @@ class CRISPMethod(Method):
                          common: RunConfig) -> None:
         if not self._saes_downloaded:
             sae_cache = _resolve_sae_cache(common.model_name, common.crisp.sae_cache)
-            _download_saes_once(common.model_name, _layer_ranges(common.model_name),
-                                sae_cache)
+            layer_ranges = resolve_layer_ranges(common.crisp, common.model_name)
+            _download_saes_once(common.model_name, layer_ranges, sae_cache)
             self._saes_downloaded = True
 
         max_len = common.crisp.max_len if hasattr(common.crisp, "max_len") else 2000

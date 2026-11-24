@@ -48,6 +48,50 @@ LLAMA_UPDATE_SETTINGS: List[UpdateSetting] = [
 FIXED_PARAM_IDS: List[int] = [6]
 
 
+def _allowed_update_settings(model_name: str) -> List[UpdateSetting]:
+    if "llama" in model_name.lower():
+        return LLAMA_UPDATE_SETTINGS
+    return GEMMA_UPDATE_SETTINGS
+
+
+def _setting_key(setting: UpdateSetting) -> Tuple[str, int, Tuple[int, ...]]:
+    return (setting[0], int(setting[1]), tuple(int(x) for x in setting[2]))
+
+
+def _normalize_update_setting(entry: Dict[str, Any] | UpdateSetting) -> UpdateSetting:
+    if isinstance(entry, dict):
+        return (
+            str(entry["setting_name"]),
+            int(entry["layer_id"]),
+            [int(x) for x in str(entry["layer_ids"]).split(",")],
+        )
+    name, layer_id, layer_ids = entry
+    return (str(name), int(layer_id), [int(x) for x in layer_ids])
+
+
+def validate_update_settings(
+    settings: List[Dict[str, Any]] | List[UpdateSetting],
+    model_name: str,
+) -> List[UpdateSetting]:
+    """Ensure each RMU update setting matches a valid grid preset."""
+    allowed = {_setting_key(s) for s in _allowed_update_settings(model_name)}
+    normalized = [_normalize_update_setting(s) for s in settings]
+    invalid = [s for s in normalized if _setting_key(s) not in allowed]
+    if invalid:
+        raise ValueError(
+            f"Invalid RMU update_settings {invalid} for {model_name!r}; "
+            f"allowed: {sorted(allowed)}"
+        )
+    return normalized
+
+
+def resolve_update_settings(cfg: Any, model_name: str) -> List[UpdateSetting]:
+    """Return configured update settings, or the model defaults when unset."""
+    if cfg.update_settings is None:
+        return _allowed_update_settings(model_name)
+    return validate_update_settings(cfg.update_settings, model_name)
+
+
 def _grids_and_settings(common: RunConfig
                         ) -> Tuple[List[float], List[float], List[float],
                                    List[UpdateSetting]]:
@@ -57,12 +101,12 @@ def _grids_and_settings(common: RunConfig
         lrs = cfg.lr_grid or [1e-5, 1e-4, 3e-4]
         alphas = cfg.alpha_grid or [30.0, 50.0, 100.0, 300.0]
         steerings = cfg.steering_grid or [30.0, 100.0, 300.0, 1000.0]
-        settings = LLAMA_UPDATE_SETTINGS
+        settings = resolve_update_settings(cfg, common.model_name)
     else:
         lrs = cfg.lr_grid or [1e-5, 1e-4, 3e-4]
         alphas = cfg.alpha_grid or [10.0, 30.0, 50.0, 100.0]
         steerings = cfg.steering_grid or [30.0, 100.0, 300.0, 1000.0]
-        settings = GEMMA_UPDATE_SETTINGS
+        settings = resolve_update_settings(cfg, common.model_name)
     return lrs, alphas, steerings, settings
 
 
